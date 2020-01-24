@@ -48,6 +48,7 @@ function(AddTest)
   if (onnxruntime_ENABLE_LANGUAGE_INTEROP_OPS AND onnxruntime_ENABLE_PYTHON)
     target_compile_definitions(${_UT_TARGET} PRIVATE ENABLE_LANGUAGE_INTEROP_OPS)
   endif()  
+  target_compile_options(${_UT_TARGET} PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--compiler-options /utf-8>" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/utf-8>")
   if (WIN32)
     if (onnxruntime_USE_CUDA)
       # disable a warning from the CUDA headers about unreferenced local functions
@@ -63,17 +64,24 @@ function(AddTest)
             "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:-Wno-error=sign-compare>")
   endif()
 
-  set(TEST_ARGS)
-  if (onnxruntime_GENERATE_TEST_REPORTS)
-    # generate a report file next to the test program
-    list(APPEND TEST_ARGS
-      "--gtest_output=xml:$<SHELL_PATH:$<TARGET_FILE:${_UT_TARGET}>.$<CONFIG>.results.xml>")
-  endif(onnxruntime_GENERATE_TEST_REPORTS)
-
-  add_test(NAME ${_UT_TARGET}
-    COMMAND ${_UT_TARGET} ${TEST_ARGS}
-    WORKING_DIRECTORY $<TARGET_FILE_DIR:${_UT_TARGET}>
+  if(onnxruntime_USE_VSTEST)
+    add_test(NAME ${_UT_TARGET}
+      COMMAND vstest.console --parallel  --TestAdapterPath:..\\googletestadapter.0.17.1\\build\\_common /Logger:trx /Enablecodecoverage ${_UT_TARGET}.exe
+      WORKING_DIRECTORY $<TARGET_FILE_DIR:${_UT_TARGET}>
     )
+  else()
+    set(TEST_ARGS)
+    if (onnxruntime_GENERATE_TEST_REPORTS)
+      # generate a report file next to the test program
+      list(APPEND TEST_ARGS
+        "--gtest_output=xml:$<SHELL_PATH:$<TARGET_FILE:${_UT_TARGET}>.$<CONFIG>.results.xml>")
+    endif(onnxruntime_GENERATE_TEST_REPORTS)
+
+    add_test(NAME ${_UT_TARGET}
+      COMMAND ${_UT_TARGET} ${TEST_ARGS}
+      WORKING_DIRECTORY $<TARGET_FILE_DIR:${_UT_TARGET}>
+    )
+  endif()
 endfunction(AddTest)
 
 #Do not add '${TEST_SRC_DIR}/util/include' to your include directories directly
@@ -158,6 +166,26 @@ if (onnxruntime_USE_NNAPI)
     )
   list(APPEND onnxruntime_test_providers_src ${onnxruntime_test_providers_nnapi_src})
 endif()
+
+set (ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR "${ONNXRUNTIME_ROOT}/test/shared_lib")
+
+
+set (onnxruntime_shared_lib_test_SRC
+          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_fixture.h
+          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_inference.cc
+          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_session_options.cc
+          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_run_options.cc
+          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_allocator.cc
+          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_nontensor_types.cc)
+  if(onnxruntime_RUN_ONNX_TESTS)
+    list(APPEND onnxruntime_shared_lib_test_SRC ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_io_types.cc)
+  endif()
+  if (NOT(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
+    #for some reason, these tests are failing. Need investigation.
+    if (onnxruntime_USE_FULL_PROTOBUF)
+      list(APPEND onnxruntime_shared_lib_test_SRC ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_model_loading.cc)
+    endif()
+  endif()
 
 # tests from lowest level library up.
 # the order of libraries should be maintained, with higher libraries being added first in the list
@@ -313,6 +341,7 @@ file(GLOB onnxruntime_test_framework_src CONFIGURE_DEPENDS
 
 #with auto initialize onnxruntime
 add_library(onnxruntime_test_utils_for_framework ${onnxruntime_test_utils_src})
+target_compile_options(onnxruntime_test_utils_for_framework PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--compiler-options /utf-8>" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/utf-8>")
 onnxruntime_add_include_to_target(onnxruntime_test_utils_for_framework onnxruntime_framework gtest onnx onnx_proto)
 if (onnxruntime_USE_FULL_PROTOBUF)
   target_compile_definitions(onnxruntime_test_utils_for_framework PRIVATE USE_FULL_PROTOBUF=1)
@@ -328,6 +357,7 @@ set_target_properties(onnxruntime_test_utils_for_framework PROPERTIES FOLDER "ON
 
 #without auto initialize onnxruntime
 add_library(onnxruntime_test_utils ${onnxruntime_test_utils_src})
+target_compile_options(onnxruntime_test_utils PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--compiler-options /utf-8>" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/utf-8>")
 onnxruntime_add_include_to_target(onnxruntime_test_utils onnxruntime_framework gtest onnx onnx_proto)
 if (onnxruntime_USE_FULL_PROTOBUF)
   target_compile_definitions(onnxruntime_test_utils PRIVATE USE_FULL_PROTOBUF=1)
@@ -339,9 +369,11 @@ add_dependencies(onnxruntime_test_utils ${onnxruntime_EXTERNAL_DEPENDENCIES})
 target_include_directories(onnxruntime_test_utils PUBLIC "${TEST_SRC_DIR}/util/include" PRIVATE ${eigen_INCLUDE_DIRS} ${ONNXRUNTIME_ROOT})
 set_target_properties(onnxruntime_test_utils PROPERTIES FOLDER "ONNXRuntimeTest")
 
-if (SingleUnitTestProject)
-  set(all_tests ${onnxruntime_test_common_src} ${onnxruntime_test_ir_src} ${onnxruntime_test_optimizer_src} ${onnxruntime_test_framework_src} ${onnxruntime_test_providers_src})
-  set(all_dependencies ${onnxruntime_test_providers_dependencies} )
+set(all_tests ${onnxruntime_test_common_src} ${onnxruntime_test_ir_src} ${onnxruntime_test_optimizer_src} ${onnxruntime_test_framework_src} ${onnxruntime_test_providers_src})
+if(NOT TARGET onnxruntime)
+  list(APPEND all_tests ${onnxruntime_shared_lib_test_SRC})
+endif()
+set(all_dependencies ${onnxruntime_test_providers_dependencies} )
 
   if (onnxruntime_USE_TVM)
     list(APPEND all_tests ${onnxruntime_test_tvm_src})
@@ -380,54 +412,6 @@ if (SingleUnitTestProject)
   endif()
 
   set(test_data_target onnxruntime_test_all)
-else()
-  AddTest(
-    TARGET onnxruntime_test_common
-    SOURCES ${onnxruntime_test_common_src}
-    LIBS ${onnxruntime_test_common_libs}
-    DEPENDS ${onnxruntime_EXTERNAL_DEPENDENCIES}
-  )
-
-  AddTest(
-    TARGET onnxruntime_test_ir
-    SOURCES ${onnxruntime_test_ir_src}
-    LIBS ${onnxruntime_test_ir_libs}
-    DEPENDS ${onnxruntime_EXTERNAL_DEPENDENCIES}
-  )
-
-  AddTest(
-    TARGET onnxruntime_test_optimizer
-    SOURCES ${onnxruntime_test_optimizer_src}
-    LIBS ${onnxruntime_test_optimizer_libs}
-    DEPENDS ${onnxruntime_EXTERNAL_DEPENDENCIES}
-  )
-
-  AddTest(
-    TARGET onnxruntime_test_framework
-    SOURCES ${onnxruntime_test_framework_src}
-    LIBS ${onnxruntime_test_framework_libs}
-    # code smell! see if CPUExecutionProvider should move to framework so onnxruntime_providers isn't needed.
-    DEPENDS ${onnxruntime_test_providers_dependencies}
-  )
-
-  AddTest(
-    TARGET onnxruntime_test_providers
-    SOURCES ${onnxruntime_test_providers_src}
-    LIBS ${onnxruntime_test_providers_libs}
-    DEPENDS ${onnxruntime_test_providers_dependencies}
-  )
-
-  set(test_data_target onnxruntime_test_ir)
-endif()  # SingleUnitTestProject
-
-# standalone test for inference session without environment
-# the normal test executables set up a default runtime environment, which we don't want here
-AddTest(
-  TARGET onnxruntime_test_framework_session_without_environment_standalone
-  SOURCES "${TEST_SRC_DIR}/framework/inference_session_without_environment/inference_session_without_environment_standalone_test.cc" "${TEST_SRC_DIR}/framework/test_main.cc"
-  LIBS  onnxruntime_test_utils ${ONNXRUNTIME_TEST_LIBS}
-  DEPENDS ${onnxruntime_EXTERNAL_DEPENDENCIES}
-)
 
 
 #
@@ -542,6 +526,7 @@ if(WIN32)
 endif()
 
 add_library(onnx_test_runner_common ${onnx_test_runner_common_srcs})
+target_compile_options(onnx_test_runner_common PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--compiler-options /utf-8>" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/utf-8>")
 if (MSVC AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     #TODO: fix the warnings, they are dangerous
     target_compile_options(onnx_test_runner_common PRIVATE "/wd4244")
@@ -562,6 +547,7 @@ if (onnxruntime_ENABLE_LANGUAGE_INTEROP_OPS)
 endif()
 
 add_executable(onnx_test_runner ${onnx_test_runner_src_dir}/main.cc)
+target_compile_options(onnx_test_runner PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--compiler-options /utf-8>" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/utf-8>")
 target_link_libraries(onnx_test_runner PRIVATE onnx_test_runner_common ${GETOPT_LIB_WIDE} ${onnx_test_libs})
 target_include_directories(onnx_test_runner PRIVATE ${ONNXRUNTIME_ROOT})
 set_target_properties(onnx_test_runner PROPERTIES FOLDER "ONNXRuntimeTest")
@@ -618,7 +604,7 @@ file(GLOB onnxruntime_perf_test_src CONFIGURE_DEPENDS
   ${onnxruntime_perf_test_src_patterns}
   )
 add_executable(onnxruntime_perf_test ${onnxruntime_perf_test_src} ${ONNXRUNTIME_ROOT}/core/framework/path_lib.cc)
-
+target_compile_options(onnxruntime_perf_test PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--compiler-options /utf-8>" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/utf-8>")
 target_include_directories(onnxruntime_perf_test PRIVATE ${onnx_test_runner_src_dir} ${ONNXRUNTIME_ROOT}
         ${eigen_INCLUDE_DIRS} ${extra_includes} ${onnxruntime_graph_header} ${onnxruntime_exec_src_dir}
         ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/onnx)
@@ -681,23 +667,6 @@ if (onnxruntime_BUILD_SHARED_LIB)
 
   #################################################################
   # test inference using shared lib
-  set (ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR "${ONNXRUNTIME_ROOT}/test/shared_lib")
-  set (onnxruntime_shared_lib_test_SRC
-          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_fixture.h
-          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_inference.cc
-          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_session_options.cc
-          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_run_options.cc
-          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_allocator.cc
-          ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_nontensor_types.cc)
-  if(onnxruntime_RUN_ONNX_TESTS)
-    list(APPEND onnxruntime_shared_lib_test_SRC ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_io_types.cc)
-  endif()
-  if (NOT(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
-    #for some reason, these tests are failing. Need investigation.
-    if (onnxruntime_USE_FULL_PROTOBUF)
-      list(APPEND onnxruntime_shared_lib_test_SRC ${ONNXRUNTIME_SHARED_LIB_TEST_SRC_DIR}/test_model_loading.cc)
-    endif()
-  endif()
   set(onnxruntime_shared_lib_test_LIBS onnxruntime_mocked_allocator onnxruntime_test_utils onnxruntime_common
           onnx_proto)
   if(onnxruntime_USE_NSYNC)
@@ -724,6 +693,7 @@ if(WIN32 AND onnxruntime_ENABLE_INSTRUMENT)
 endif()
 
 add_executable(onnxruntime_mlas_test ${TEST_SRC_DIR}/mlas/unittest.cpp)
+target_compile_options(onnxruntime_mlas_test PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--compiler-options /utf-8>" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/utf-8>")
 target_include_directories(onnxruntime_mlas_test PRIVATE ${ONNXRUNTIME_ROOT}/core/mlas/inc ${ONNXRUNTIME_ROOT})
 set(onnxruntime_mlas_test_libs onnxruntime_mlas onnxruntime_common)
 if(onnxruntime_USE_NSYNC)
