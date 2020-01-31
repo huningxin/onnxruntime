@@ -4,7 +4,33 @@
 
 #include <assert.h>
 #include <vector>
+#include <iostream>
+#include <windows.h>
+
 #include <onnxruntime_cxx_api.h>
+
+// A stopwatch to measure the time passed (in milliseconds ) between current Stop call and the closest Start call that
+// has been called before.
+class Timer {
+ public:
+  void Start() {
+    LARGE_INTEGER t;
+    QueryPerformanceCounter(&t);
+    m_startTime = static_cast<double>(t.QuadPart);
+  }
+
+  double Stop() {
+    LARGE_INTEGER stopTime;
+    QueryPerformanceCounter(&stopTime);
+    double t = static_cast<double>(stopTime.QuadPart) - m_startTime;
+    LARGE_INTEGER tps;
+    QueryPerformanceFrequency(&tps);
+    return t / static_cast<double>(tps.QuadPart) * 1000;
+  }
+
+ private:
+  double m_startTime;
+};
 
 int main(int argc, char* argv[]) {
   //*************************************************************************
@@ -34,7 +60,7 @@ int main(int argc, char* argv[]) {
   // using squeezenet version 1.3
   // URL = https://github.com/onnx/models/tree/master/squeezenet
 #ifdef _WIN32
-  const wchar_t* model_path = L"squeezenet.onnx";
+  const wchar_t* model_path = L"SqueezeNet.onnx";
 #else
   const char* model_path = "squeezenet.onnx";
 #endif
@@ -108,9 +134,15 @@ int main(int argc, char* argv[]) {
   Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, input_tensor_values.data(), input_tensor_size, input_node_dims.data(), 4);
   assert(input_tensor.IsTensor());
 
-  // score model & input tensor, get back output tensor
-  auto output_tensors = session.Run(Ort::RunOptions{nullptr}, input_node_names.data(), &input_tensor, 1, output_node_names.data(), 1);
-  assert(output_tensors.size() == 1 && output_tensors.front().IsTensor());
+  std::vector<Ort::Value> output_tensors;
+  Timer timer;
+  for (int i = 0; i < 10; i++) {
+    timer.Start();
+    // score model & input tensor, get back output tensor
+    output_tensors = session.Run(Ort::RunOptions{nullptr}, input_node_names.data(), &input_tensor, 1, output_node_names.data(), 1);
+    assert(output_tensors.size() == 1 && output_tensors.front().IsTensor());
+    std::wcout << L"Predict " << i << " elapsed time: " << timer.Stop() << " ms\n";
+  }
 
   // Get pointer to output tensor float values
   float* floatarr = output_tensors.front().GetTensorMutableData<float>();
