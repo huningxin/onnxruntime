@@ -37,6 +37,8 @@ class Timer {
 };
 
 int main(int argc, char* argv[]) {
+  char* ep = (argc >= 2) ? argv[1] : "";
+
   //*************************************************************************
   // initialize  enviroment...one enviroment per process
   // enviroment maintains thread pools and other state info
@@ -51,11 +53,19 @@ int main(int argc, char* argv[]) {
   // #include "cuda_provider_factory.h"
   // OrtSessionOptionsAppendExecutionProvider_CUDA(session_options, 1);
 
- #ifdef USE_DML
-  session_options.DisableMemPattern();
-  session_options.SetExecutionMode(ORT_SEQUENTIAL);
-  OrtSessionOptionsAppendExecutionProvider_DML(session_options, 0);
+  if (std::string(ep) == std::string("dml")) {
+    std::wcout << "Using DML" << std::endl;
+#ifdef USE_DML
+    session_options.DisableMemPattern();
+    session_options.SetExecutionMode(ORT_SEQUENTIAL);
+    OrtSessionOptionsAppendExecutionProvider_DML(session_options, 0);
+#else
+    std::wcout << "DML is not enabled in this build" << std::endl;
+    return -1;
 #endif
+  } else {
+    std::wcout << "Using CPU" << std::endl;
+  }
 
   // Sets graph optimization level
   // Available levels are
