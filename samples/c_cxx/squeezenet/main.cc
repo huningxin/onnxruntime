@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 
   // print number of model input nodes
   size_t num_input_nodes = session.GetInputCount();
-  std::vector<const char*> input_node_names(num_input_nodes);
+  std::vector<const char*> input_node_names;
   std::vector<int64_t> input_node_dims;  // simplify... this model has only 1 input node {1, 3, 224, 224}.
                                          // Otherwise need vector<vector<>>
 
@@ -94,8 +94,10 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < num_input_nodes; i++) {
     // print input node names
     char* input_name = session.GetInputName(i, allocator);
+    if (std::string(input_name) != std::string("data_0"))
+      continue;
     printf("Input %d : name=%s\n", i, input_name);
-    input_node_names[i] = input_name;
+    input_node_names.push_back(input_name);
 
     // print input node types
     Ort::TypeInfo type_info = session.GetInputTypeInfo(i);
