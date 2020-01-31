@@ -9,6 +9,10 @@
 
 #include <onnxruntime_cxx_api.h>
 
+#ifdef USE_DML
+#include "onnxruntime/core/providers/dml/dml_provider_factory.h"
+#endif
+
 // A stopwatch to measure the time passed (in milliseconds ) between current Stop call and the closest Start call that
 // has been called before.
 class Timer {
@@ -46,6 +50,12 @@ int main(int argc, char* argv[]) {
   // session (we also need to include cuda_provider_factory.h above which defines it)
   // #include "cuda_provider_factory.h"
   // OrtSessionOptionsAppendExecutionProvider_CUDA(session_options, 1);
+
+ #ifdef USE_DML
+  session_options.DisableMemPattern();
+  session_options.SetExecutionMode(ORT_SEQUENTIAL);
+  OrtSessionOptionsAppendExecutionProvider_DML(session_options, 0);
+#endif
 
   // Sets graph optimization level
   // Available levels are
