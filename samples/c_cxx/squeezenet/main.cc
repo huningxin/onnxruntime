@@ -2,12 +2,26 @@
 // Licensed under the MIT License.
 //
 
-#include <assert.h>
-#include <vector>
+#include <winrt/Windows.Foundation.h>
+
+#include "d3dx12.h" // The D3D12 Helper Library that you downloaded.
+#include "DirectML.h" // The DirectML header from the Windows SDK.
+#include <dxgi1_4.h>
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cassert>
+#include <fstream>
 #include <iostream>
-#include <windows.h>
+#include <iterator>
+#include <vector>
+#include <initguid.h>
+#include <dxcore.h>
 
 #include <onnxruntime_cxx_api.h>
+
+#define USE_VPU 0
 
 #ifdef USE_DML
 #include "onnxruntime/core/providers/dml/dml_provider_factory.h"
@@ -36,7 +50,134 @@ class Timer {
   double m_startTime;
 };
 
+using winrt::com_ptr;
+using winrt::check_hresult;
+using winrt::check_bool;
+using winrt::handle;
+
+std::string DriverDescription(com_ptr<IDXCoreAdapter>& adapter, bool selected = false) {
+  // If the adapter is a software adapter then don't consider it for index selection
+  size_t driverDescriptionSize;
+  check_hresult(adapter->GetPropertySize(DXCoreAdapterProperty::DriverDescription,
+                                         &driverDescriptionSize));
+  CHAR* driverDescription = new CHAR[driverDescriptionSize];
+  check_hresult(adapter->GetProperty(DXCoreAdapterProperty::DriverDescription,
+                                     driverDescriptionSize, driverDescription));
+  if (selected) {
+    printf("Using adapter : %s\n", driverDescription);
+  }
+
+  std::string driverDescriptionStr = std::string(driverDescription);
+  free(driverDescription);
+
+  return driverDescriptionStr;
+}
+
+void InitWithDXCore(com_ptr<ID3D12Device>& d3D12Device,
+                    com_ptr<ID3D12CommandQueue>& commandQueue,
+                    com_ptr<ID3D12CommandAllocator>& commandAllocator,
+                    com_ptr<ID3D12GraphicsCommandList>& commandList) {
+  HMODULE library = nullptr;
+  library = LoadLibrary("dxcore.dll");
+  if (!library) {
+    //throw hresult_invalid_argument(L"DXCore isn't support on this manchine.");
+    std::wcout << L"DXCore isn't support on this manchine. ";
+    return;
+  }
+
+  com_ptr<IDXCoreAdapterFactory> adapterFactory;
+  check_hresult(DXCoreCreateAdapterFactory(IID_PPV_ARGS(adapterFactory.put())));
+
+  com_ptr<IDXCoreAdapterList> adapterList;
+  const GUID dxGUIDs[] = {DXCORE_ADAPTER_ATTRIBUTE_D3D12_CORE_COMPUTE};
+
+  check_hresult(
+      adapterFactory->CreateAdapterList(ARRAYSIZE(dxGUIDs), dxGUIDs, IID_PPV_ARGS(adapterList.put())));
+
+  com_ptr<IDXCoreAdapter> currAdapter = nullptr;
+  IUnknown* pAdapter = nullptr;
+  com_ptr<IDXGIAdapter> dxgiAdapter;
+  D3D_FEATURE_LEVEL d3dFeatureLevel = D3D_FEATURE_LEVEL_1_0_CORE;
+  D3D12_COMMAND_LIST_TYPE commandQueueType = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+  for (UINT i = 0; i < adapterList->GetAdapterCount(); i++) {
+    currAdapter = nullptr;
+    check_hresult(adapterList->GetAdapter(i, currAdapter.put()));
+
+    bool isHardware;
+    check_hresult(currAdapter->GetProperty(DXCoreAdapterProperty::IsHardware, &isHardware));
+#if USE_VPU == 1
+    std::string adapterNameStr = "VPU";
+    std::string driverDescriptionStr = DriverDescription(currAdapter);
+    std::transform(driverDescriptionStr.begin(), driverDescriptionStr.end(),
+                   driverDescriptionStr.begin(), ::tolower);
+    std::transform(adapterNameStr.begin(), adapterNameStr.end(), adapterNameStr.begin(),
+                   ::tolower);
+    if (isHardware && strstr(driverDescriptionStr.c_str(), adapterNameStr.c_str())) {
+      pAdapter = currAdapter.get();
+      break;
+    }
+#else
+    // Check if adapter selected has DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS attribute selected. If
+    // so, then GPU was selected that has D3D12 and D3D11 capabilities. It would be the most stable
+    // to use DXGI to enumerate GPU and use D3D_FEATURE_LEVEL_11_0 so that image tensorization for
+    // video frames would be able to happen on the GPU.
+    if (isHardware && currAdapter->IsAttributeSupported(DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS)) {
+      d3dFeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0;
+      com_ptr<IDXGIFactory4> dxgiFactory4;
+      HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(dxgiFactory4.put()));
+      if (hr == S_OK) {
+        // If DXGI factory creation was successful then get the IDXGIAdapter from the LUID
+        // acquired from the selectedAdapter
+        LUID adapterLuid;
+        check_hresult(currAdapter->GetProperty(DXCoreAdapterProperty::InstanceLuid, &adapterLuid));
+        check_hresult(dxgiFactory4->EnumAdapterByLuid(adapterLuid, __uuidof(IDXGIAdapter),
+                                                      dxgiAdapter.put_void()));
+        pAdapter = dxgiAdapter.get();
+        break;
+      }
+    }
+#endif
+  }
+
+  if (currAdapter == nullptr) {
+    std::wcout << L"ERROR: No matching adapter with given adapter name: ";
+    return;
+  }
+  DriverDescription(currAdapter, true);
+
+  // create D3D12Device
+  check_hresult(
+      D3D12CreateDevice(pAdapter, d3dFeatureLevel, __uuidof(ID3D12Device), d3D12Device.put_void()));
+
+  // create D3D12 command queue from device
+  //com_ptr<ID3D12CommandQueue> d3d12CommandQueue;
+  D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {};
+  commandQueueDesc.Type = commandQueueType;
+  check_hresult(d3D12Device->CreateCommandQueue(&commandQueueDesc, __uuidof(ID3D12CommandQueue),
+                                                commandQueue.put_void()));
+
+  check_hresult(d3D12Device->CreateCommandAllocator(
+      commandQueueType,
+      __uuidof(commandAllocator),
+      commandAllocator.put_void()));
+
+  check_hresult(d3D12Device->CreateCommandList(
+      0,
+      commandQueueType,
+      commandAllocator.get(),
+      nullptr,
+      __uuidof(commandList),
+      commandList.put_void()));
+}
+
+
 int main(int argc, char* argv[]) {
+#if USE_DML
+  com_ptr<ID3D12Device> d3D12Device;
+  com_ptr<ID3D12CommandQueue> commandQueue;
+  com_ptr<ID3D12CommandAllocator> commandAllocator;
+  com_ptr<ID3D12GraphicsCommandList> commandList;
+#endif
   char* ep = (argc >= 2) ? argv[1] : "";
 
   //*************************************************************************
@@ -56,9 +197,30 @@ int main(int argc, char* argv[]) {
   if (std::string(ep) == std::string("dml")) {
     std::wcout << "Using DML" << std::endl;
 #ifdef USE_DML
+    // Set up Direct3D 12.
+    InitWithDXCore(d3D12Device, commandQueue, commandAllocator, commandList);
+
+	// Create the DirectML device.
+    DML_CREATE_DEVICE_FLAGS dmlCreateDeviceFlags = DML_CREATE_DEVICE_FLAG_NONE;
+    com_ptr<IDMLDevice> dmlDevice;
+    check_hresult(DMLCreateDevice(
+        d3D12Device.get(),
+        dmlCreateDeviceFlags,
+        __uuidof(dmlDevice),
+        dmlDevice.put_void()));
+
+    DML_FEATURE_DATA_TENSOR_DATA_TYPE_SUPPORT support_f16 = {false};
+    DML_FEATURE_QUERY_TENSOR_DATA_TYPE_SUPPORT fp16_query = {
+        DML_TENSOR_DATA_TYPE_FLOAT16};
+    check_hresult(dmlDevice->CheckFeatureSupport(
+        DML_FEATURE_TENSOR_DATA_TYPE_SUPPORT, sizeof(fp16_query), &fp16_query,
+        sizeof(support_f16), &support_f16));
+
+    std::wcout << "Support float16: " << support_f16.IsSupported << std::endl;
+
     session_options.DisableMemPattern();
     session_options.SetExecutionMode(ORT_SEQUENTIAL);
-    OrtSessionOptionsAppendExecutionProvider_DML(session_options, 0);
+    OrtSessionOptionsAppendExecutionProviderEx_DML(session_options, dmlDevice.get(), commandQueue.get());
 #else
     std::wcout << "DML is not enabled in this build" << std::endl;
     return -1;
