@@ -21,8 +21,6 @@
 
 #include <onnxruntime_cxx_api.h>
 
-#define USE_VPU 0
-
 #ifdef USE_DML
 #include "onnxruntime/core/providers/dml/dml_provider_factory.h"
 #endif
@@ -76,7 +74,8 @@ std::string DriverDescription(com_ptr<IDXCoreAdapter>& adapter, bool selected = 
 void InitWithDXCore(com_ptr<ID3D12Device>& d3D12Device,
                     com_ptr<ID3D12CommandQueue>& commandQueue,
                     com_ptr<ID3D12CommandAllocator>& commandAllocator,
-                    com_ptr<ID3D12GraphicsCommandList>& commandList) {
+                    com_ptr<ID3D12GraphicsCommandList>& commandList,
+					bool use_vpu) {
   HMODULE library = nullptr;
   library = LoadLibrary("dxcore.dll");
   if (!library) {
@@ -105,38 +104,38 @@ void InitWithDXCore(com_ptr<ID3D12Device>& d3D12Device,
 
     bool isHardware;
     check_hresult(currAdapter->GetProperty(DXCoreAdapterProperty::IsHardware, &isHardware));
-#if USE_VPU == 1
-    std::string adapterNameStr = "VPU";
-    std::string driverDescriptionStr = DriverDescription(currAdapter);
-    std::transform(driverDescriptionStr.begin(), driverDescriptionStr.end(),
-                   driverDescriptionStr.begin(), ::tolower);
-    std::transform(adapterNameStr.begin(), adapterNameStr.end(), adapterNameStr.begin(),
-                   ::tolower);
-    if (isHardware && strstr(driverDescriptionStr.c_str(), adapterNameStr.c_str())) {
-      pAdapter = currAdapter.get();
-      break;
-    }
-#else
-    // Check if adapter selected has DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS attribute selected. If
-    // so, then GPU was selected that has D3D12 and D3D11 capabilities. It would be the most stable
-    // to use DXGI to enumerate GPU and use D3D_FEATURE_LEVEL_11_0 so that image tensorization for
-    // video frames would be able to happen on the GPU.
-    if (isHardware && currAdapter->IsAttributeSupported(DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS)) {
-      d3dFeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0;
-      com_ptr<IDXGIFactory4> dxgiFactory4;
-      HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(dxgiFactory4.put()));
-      if (hr == S_OK) {
-        // If DXGI factory creation was successful then get the IDXGIAdapter from the LUID
-        // acquired from the selectedAdapter
-        LUID adapterLuid;
-        check_hresult(currAdapter->GetProperty(DXCoreAdapterProperty::InstanceLuid, &adapterLuid));
-        check_hresult(dxgiFactory4->EnumAdapterByLuid(adapterLuid, __uuidof(IDXGIAdapter),
-                                                      dxgiAdapter.put_void()));
-        pAdapter = dxgiAdapter.get();
+    if (use_vpu) {
+      std::string adapterNameStr = "VPU";
+      std::string driverDescriptionStr = DriverDescription(currAdapter);
+      std::transform(driverDescriptionStr.begin(), driverDescriptionStr.end(),
+                     driverDescriptionStr.begin(), ::tolower);
+      std::transform(adapterNameStr.begin(), adapterNameStr.end(), adapterNameStr.begin(),
+                     ::tolower);
+      if (isHardware && strstr(driverDescriptionStr.c_str(), adapterNameStr.c_str())) {
+        pAdapter = currAdapter.get();
         break;
       }
+    } else {
+      // Check if adapter selected has DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS attribute selected. If
+      // so, then GPU was selected that has D3D12 and D3D11 capabilities. It would be the most stable
+      // to use DXGI to enumerate GPU and use D3D_FEATURE_LEVEL_11_0 so that image tensorization for
+      // video frames would be able to happen on the GPU.
+      if (isHardware && currAdapter->IsAttributeSupported(DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS)) {
+        d3dFeatureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0;
+        com_ptr<IDXGIFactory4> dxgiFactory4;
+        HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(dxgiFactory4.put()));
+        if (hr == S_OK) {
+          // If DXGI factory creation was successful then get the IDXGIAdapter from the LUID
+          // acquired from the selectedAdapter
+          LUID adapterLuid;
+          check_hresult(currAdapter->GetProperty(DXCoreAdapterProperty::InstanceLuid, &adapterLuid));
+          check_hresult(dxgiFactory4->EnumAdapterByLuid(adapterLuid, __uuidof(IDXGIAdapter),
+                                                        dxgiAdapter.put_void()));
+          pAdapter = dxgiAdapter.get();
+          break;
+        }
+      }
     }
-#endif
   }
 
   if (currAdapter == nullptr) {
@@ -178,6 +177,7 @@ int main(int argc, char* argv[]) {
   com_ptr<ID3D12CommandAllocator> commandAllocator;
   com_ptr<ID3D12GraphicsCommandList> commandList;
 #endif
+  // ep could be "dml" or default (cpu)
   char* ep = (argc >= 2) ? argv[1] : "";
 
   //*************************************************************************
@@ -196,9 +196,12 @@ int main(int argc, char* argv[]) {
 
   if (std::string(ep) == std::string("dml")) {
     std::wcout << "Using DML" << std::endl;
+	// device could be "vpu" or default (gpu).
+    char* device = (argc >= 3) ? argv[2] : "";
+    bool use_vpu = std::string(device) == "vpu";
 #ifdef USE_DML
     // Set up Direct3D 12.
-    InitWithDXCore(d3D12Device, commandQueue, commandAllocator, commandList);
+    InitWithDXCore(d3D12Device, commandQueue, commandAllocator, commandList, use_vpu);
 
 	// Create the DirectML device.
     DML_CREATE_DEVICE_FLAGS dmlCreateDeviceFlags = DML_CREATE_DEVICE_FLAG_NONE;
