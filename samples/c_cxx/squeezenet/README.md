@@ -9,10 +9,10 @@ Download the SqueezeNet.onnx and SqueezeNet_fp16.onnx from [Windows-Machine-Lear
 # Run
 Command to run the application:
 ```
-squeezenet.exe [fp32|fp16] [cpu|gpu|vpu]
+squeezenet.exe [fp32|fp16] [cpu|gpu|vpu] <iterations>
 ```
 
 For example, the command to run Squeezenet_fp16.onnx on VPU:
 ```
-squeezenet.exe fp16 vpu
+squeezenet.exe fp16 vpu 20
 ```

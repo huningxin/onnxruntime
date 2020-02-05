@@ -236,7 +236,7 @@ void InitWithDXCore(com_ptr<ID3D12Device>& d3D12Device,
       commandList.put_void()));
 }
 
-static void usage() { printf("usage: [fp32|fp16] [cpu|gpu|vpu] \n"); }
+static void usage() { printf("usage: [fp32|fp16] [cpu|gpu|vpu] <iteratios>\n"); }
 
 int main(int argc, char* argv[]) {
 #if USE_DML
@@ -245,7 +245,7 @@ int main(int argc, char* argv[]) {
   com_ptr<ID3D12CommandAllocator> commandAllocator;
   com_ptr<ID3D12GraphicsCommandList> commandList;
 #endif
-  if (argc < 3) {
+  if (argc < 4) {
     usage();
     return -1;
   }
@@ -256,6 +256,13 @@ int main(int argc, char* argv[]) {
   } else if (std::string(type) == "fp16") {
     request_fp16 = TRUE;
   } else {
+    usage();
+    return -1;
+  }
+
+  int iterations = atoi(argv[3]);
+  if (iterations <= 0) {
+    printf("invalid iterations: %d\n", iterations);
     usage();
     return -1;
   }
@@ -431,13 +438,20 @@ int main(int argc, char* argv[]) {
 
   std::vector<Ort::Value> output_tensors;
   Timer timer;
-  for (int i = 0; i < 10; i++) {
+  timer.Start();
+  // score model & input tensor, get back output tensor
+  output_tensors = session.Run(Ort::RunOptions{nullptr}, input_node_names.data(), &input_tensor, 1, output_node_names.data(), 1);
+  assert(output_tensors.size() == 1 && output_tensors.front().IsTensor());
+  std::wcout << L"First inference elapsed time: " << timer.Stop() << " ms" << std::endl;
+
+  double total_elapsed_time = 0;
+  for (int i = 0; i < iterations; i++) {
     timer.Start();
-    // score model & input tensor, get back output tensor
     output_tensors = session.Run(Ort::RunOptions{nullptr}, input_node_names.data(), &input_tensor, 1, output_node_names.data(), 1);
     assert(output_tensors.size() == 1 && output_tensors.front().IsTensor());
-    std::wcout << L"Predict " << i << " elapsed time: " << timer.Stop() << " ms\n";
+    total_elapsed_time += timer.Stop();
   }
+  std::wcout << L"Average inference elapsed time: " << total_elapsed_time / iterations << " ms" << std::endl;
 
   if (request_fp16) {
     uint16_t* uint16arr = output_tensors.front().GetTensorMutableData<uint16_t>();
