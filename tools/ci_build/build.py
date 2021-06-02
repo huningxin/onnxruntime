@@ -384,6 +384,9 @@ def parse_arguments():
     parser.add_argument(
         "--use_coreml", action='store_true', help="Build with CoreML support.")
     parser.add_argument(
+        "--use_webnn", action='store_true', help="Build with WebNN support.")
+    parser.add_argument("--webnn_native_path", help="Path to WebNN native path")
+    parser.add_argument(
         "--use_nnapi", action='store_true', help="Build with NNAPI support.")
     parser.add_argument(
         "--nnapi_min_api", type=int,
@@ -875,6 +878,12 @@ def generate_build_tree(cmake_path, source_dir, build_dir, cuda_home, cudnn_home
             raise BuildError("Build CoreML EP requires macOS")
         cmake_args += ["-Donnxruntime_USE_COREML=ON"]
 
+    if args.use_webnn:
+        cmake_args += ["-Donnxruntime_USE_WEBNN=ON"]
+
+    if args.use_webnn and args.webnn_native_path is not None:
+        cmake_args += ["-DWEBNN_NATIVE_DIR=%s" % args.webnn_native_path]
+    
     if args.ios:
         if is_macOS():
             needed_args = [

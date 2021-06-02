@@ -159,6 +159,7 @@ target_link_libraries(onnxruntime PRIVATE
     ${PROVIDERS_ACL}
     ${PROVIDERS_ARMNN}
     ${PROVIDERS_COREML}
+    ${PROVIDERS_WEBNN}
     ${PROVIDERS_DML}
     ${PROVIDERS_MIGRAPHX}
     ${PROVIDERS_NNAPI}

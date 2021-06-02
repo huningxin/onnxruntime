@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 #include "core/common/logging/logging.h"
-#include "core/providers/coreml/coreml_execution_provider.h"
-#include "core/providers/coreml/coreml_provider_factory.h"
+#include "core/providers/webnn/webnn_execution_provider.h"
+#include "core/providers/webnn/webnn_provider_factory.h"
 #include "core/session/inference_session.h"
 #include "test/common/tensor_op_test_utils.h"
 #include "test/framework/test_utils.h"
@@ -29,12 +29,12 @@ namespace onnxruntime {
 namespace test {
 
 // We want to run UT on CPU only to get output value without losing precision to pass the verification
-static constexpr uint32_t s_coreml_flags = COREML_FLAG_USE_CPU_ONLY;
+static constexpr uint32_t s_webnn_flags = WEBNN_FLAG_USE_CPU;
 
 #if !defined(ORT_MINIMAL_BUILD)
 
-TEST(CoreMLExecutionProviderTest, FunctionTest) {
-  const ORTCHAR_T* model_file_name = ORT_TSTR("coreml_execution_provider_test_graph.onnx");
+TEST(WebNNExecutionProviderTest, FunctionTest) {
+  const ORTCHAR_T* model_file_name = ORT_TSTR("webnn_execution_provider_test_graph.onnx");
 
   {  // Create the model with 2 add nodes
     onnxruntime::Model model("graph_1", false, DefaultLoggingManager().DefaultLogger());
@@ -75,13 +75,13 @@ TEST(CoreMLExecutionProviderTest, FunctionTest) {
   std::vector<float> values_mul_x = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
   OrtValue ml_value_x;
 
-  CreateMLValue<float>(TestCoreMLExecutionProvider(s_coreml_flags)->GetAllocator(0, OrtMemTypeDefault),
+  CreateMLValue<float>(TestWebNNExecutionProvider(s_webnn_flags)->GetAllocator(0, OrtMemTypeDefault),
                        dims_mul_x, values_mul_x, &ml_value_x);
   OrtValue ml_value_y;
-  CreateMLValue<float>(TestCoreMLExecutionProvider(s_coreml_flags)->GetAllocator(0, OrtMemTypeDefault),
+  CreateMLValue<float>(TestWebNNExecutionProvider(s_webnn_flags)->GetAllocator(0, OrtMemTypeDefault),
                        dims_mul_x, values_mul_x, &ml_value_y);
   OrtValue ml_value_z;
-  CreateMLValue<float>(TestCoreMLExecutionProvider(s_coreml_flags)->GetAllocator(0, OrtMemTypeDefault),
+  CreateMLValue<float>(TestWebNNExecutionProvider(s_webnn_flags)->GetAllocator(0, OrtMemTypeDefault),
                        dims_mul_x, values_mul_x, &ml_value_z);
 
   NameMLValMap feeds;
@@ -89,39 +89,16 @@ TEST(CoreMLExecutionProviderTest, FunctionTest) {
   feeds.insert(std::make_pair("Y", ml_value_y));
   feeds.insert(std::make_pair("Z", ml_value_z));
 
-  RunAndVerifyOutputsWithEP(model_file_name, "CoreMLExecutionProviderTest.FunctionTest",
-                            std::make_unique<CoreMLExecutionProvider>(s_coreml_flags),
-                            feeds);
-}
-
-// CoreML EP currently handles a special case for supporting ArgMax op:
-// An ArgMax followed by a Cast to int32 type.
-// Please see in <repo_root>/onnxruntime/core/providers/coreml/builders/impl/argmax_op_builder.cc
-// and /cast_op_builder.cc. We have the following UT test here for this special case
-// This test case can also be shared later if we want to support similar cases in NNAPI
-TEST(CoreMLExecutionProviderTest, ArgMaxCastTest) {
-  const ORTCHAR_T* model_file_name = ORT_TSTR("testdata/coreml_argmax_cast_test.onnx");
-
-  std::vector<int64_t> dims_mul_x = {3, 2, 2};
-  std::vector<float> values_mul_x = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f};
-  OrtValue ml_value_x;
-
-  CreateMLValue<float>(TestCoreMLExecutionProvider(s_coreml_flags)->GetAllocator(0, OrtMemTypeDefault),
-                       dims_mul_x, values_mul_x, &ml_value_x);
-
-  NameMLValMap feeds;
-  feeds.insert(std::make_pair("X", ml_value_x));
-
-  RunAndVerifyOutputsWithEP(model_file_name, "CoreMLExecutionProviderTest.ArgMaxCastTest",
-                            std::make_unique<CoreMLExecutionProvider>(s_coreml_flags),
+  RunAndVerifyOutputsWithEP(model_file_name, "WebNNExecutionProviderTest.FunctionTest",
+                            std::make_unique<WebNNExecutionProvider>(s_webnn_flags),
                             feeds);
 }
 
 #endif  // !(ORT_MINIMAL_BUILD)
 
-TEST(CoreMLExecutionProviderTest, TestOrtFormatModel) {
-  // mnist model that has only had basic optimizations applied. nnapi should be able to take at least some of the nodes
-  const ORTCHAR_T* model_file_name = ORT_TSTR("testdata/mnist.level1_opt.onnx");
+TEST(WebNNExecutionProviderTest, TestOrtFormatModel) {
+  // mnist model that has only had basic optimizations applied. WebNN should be able to take at least some of the nodes
+  const ORTCHAR_T* model_file_name = ORT_TSTR("testdata/mnist.level1_opt.ort");
 
   RandomValueGenerator random{};
   const std::vector<int64_t> dims = {1, 1, 28, 28};
@@ -133,8 +110,8 @@ TEST(CoreMLExecutionProviderTest, TestOrtFormatModel) {
   NameMLValMap feeds;
   feeds.insert(std::make_pair("Input3", ml_value));
 
-  RunAndVerifyOutputsWithEP(model_file_name, "CoreMLExecutionProviderTest.TestOrtFormatModel",
-                            std::make_unique<CoreMLExecutionProvider>(s_coreml_flags),
+  RunAndVerifyOutputsWithEP(model_file_name, "WebNNExecutionProviderTest.TestOrtFormatModel",
+                            std::make_unique<WebNNExecutionProvider>(s_webnn_flags),
                             feeds);
 }
 

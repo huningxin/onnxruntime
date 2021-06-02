@@ -11,6 +11,9 @@
 #ifdef USE_COREML
 #include "core/providers/coreml/coreml_provider_factory.h"
 #endif
+#ifdef USE_WEBNN
+#include "core/providers/webnn/webnn_provider_factory.h"
+#endif
 #include "core/session/onnxruntime_cxx_api.h"
 
 namespace onnxruntime {
@@ -143,6 +146,17 @@ std::unique_ptr<IExecutionProvider> DefaultCoreMLExecutionProvider() {
   uint32_t coreml_flags = 0;
   coreml_flags |= COREML_FLAG_USE_CPU_ONLY;
   return CreateExecutionProviderFactory_CoreML(coreml_flags)->CreateProvider();
+#else
+  return nullptr;
+#endif
+}
+
+std::unique_ptr<IExecutionProvider> DefaultWebNNExecutionProvider() {
+#if defined(USE_WEBNN)
+  // We want to run UT on CPU only to get output value without losing precision
+  uint32_t webnn_flags = 0;
+  webnn_flags |= WEBNN_FLAG_USE_CPU;
+  return CreateExecutionProviderFactory_WebNN(webnn_flags)->CreateProvider();
 #else
   return nullptr;
 #endif

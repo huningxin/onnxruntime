@@ -33,8 +33,8 @@ namespace perftest {
       "\t-A: Disable memory arena\n"
       "\t-I: Generate tensor input binding (Free dimensions are treated as 1.)\n"
       "\t-c [parallel runs]: Specifies the (max) number of runs to invoke simultaneously. Default:1.\n"
-      "\t-e [cpu|cuda|dnnl|tensorrt|openvino|nuphar|dml|acl]: Specifies the provider 'cpu','cuda','dnnl','tensorrt', "
-      "'openvino', 'nuphar', 'dml', 'acl', 'nnapi' or 'coreml'. "
+      "\t-e [cpu|cuda|dnnl|tensorrt|openvino|nuphar|dml|acl|webnn]: Specifies the provider 'cpu','cuda','dnnl','tensorrt', "
+      "'openvino', 'nuphar', 'dml', 'acl', 'nnapi', 'coreml' or 'webnn'. "
       "Default:'cpu'.\n"
       "\t-b [tf|ort]: backend to use. Default:ort\n"
       "\t-r [repeated_times]: Specifies the repeated times if running in 'times' test mode.Default:1000.\n"
@@ -164,6 +164,8 @@ static bool ParseDimensionOverride(std::basic_string<ORTCHAR_T>& dim_identifier,
           test_config.machine_config.provider_type_name = onnxruntime::kNnapiExecutionProvider;
         } else if (!CompareCString(optarg, ORT_TSTR("coreml"))) {
           test_config.machine_config.provider_type_name = onnxruntime::kCoreMLExecutionProvider;
+        } else if (!CompareCString(optarg, ORT_TSTR("webnn"))) {
+          test_config.machine_config.provider_type_name = onnxruntime::kWebNNExecutionProvider;
         } else if (!CompareCString(optarg, ORT_TSTR("nuphar"))) {
           test_config.machine_config.provider_type_name = onnxruntime::kNupharExecutionProvider;
         } else if (!CompareCString(optarg, ORT_TSTR("dml"))) {
