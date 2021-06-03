@@ -22,6 +22,7 @@ void CreateActivationOpBuilder(const std::string& op_type, OpBuilderRegistration
 void CreateBinaryOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
 void CreateConvOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
 void CreateConcatOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
+void CreatePoolOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
 
 }  // namespace webnn
 }  // namespace onnxruntime

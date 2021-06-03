@@ -31,6 +31,13 @@ static OpBuilderRegistrations CreateOpBuilderRegistrations() {
     CreateConcatOpBuilder("Concat", op_registrations);
   }
 
+  {  // Pool
+    CreatePoolOpBuilder("GlobalAveragePool", op_registrations);
+    CreatePoolOpBuilder("GlobalMaxPool", op_registrations);
+    CreatePoolOpBuilder("AveragePool", op_registrations);
+    CreatePoolOpBuilder("MaxPool", op_registrations);
+  }
+
   return op_registrations;
 }
 
