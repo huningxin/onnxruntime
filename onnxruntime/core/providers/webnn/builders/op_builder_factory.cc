@@ -23,6 +23,10 @@ static OpBuilderRegistrations CreateOpBuilderRegistrations() {
     CreateActivationOpBuilder("Relu", op_registrations);
   }
 
+  {  // Conv
+    CreateConvOpBuilder("Conv", op_registrations);
+  }
+
   return op_registrations;
 }
 

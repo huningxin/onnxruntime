@@ -28,11 +28,20 @@ Status ModelBuilder::Initialize() {
   // Create WebNN context and graph builder
   WebnnProcTable backendProcs = webnn_native::GetProcs();
   webnnProcSetProcs(&backendProcs);
-  ml::Context context = ml::Context(webnn_native::CreateContext());
+  ::ml::Context context = ml::Context(webnn_native::CreateContext());
   if (!context) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to create WebNN context.");
   }
-  builder_ = ml::CreateGraphBuilder(context);
+  context.SetUncapturedErrorCallback(
+    [](MLErrorType type, char const* message, void* userData) {
+      ModelBuilder* builder = reinterpret_cast<ModelBuilder*>(userData);
+      if (type != MLErrorType_NoError) {
+        LOGS(builder->logger_, ERROR) << "Uncaptured Error type is "
+            << type << ", message is " << message;
+      }
+    },
+    this);
+  builder_ = ::ml::CreateGraphBuilder(context);
   if (!builder_) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to create WebNN graph builder.");
   }
