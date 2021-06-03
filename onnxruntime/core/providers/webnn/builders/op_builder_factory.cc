@@ -27,6 +27,10 @@ static OpBuilderRegistrations CreateOpBuilderRegistrations() {
     CreateConvOpBuilder("Conv", op_registrations);
   }
 
+  {  // Concat
+    CreateConcatOpBuilder("Concat", op_registrations);
+  }
+
   return op_registrations;
 }
 
