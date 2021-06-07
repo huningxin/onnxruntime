@@ -39,6 +39,7 @@ Status PoolOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
   bool is_average_pool = false;
   if (op_type == "GlobalAveragePool") {
     is_global_pooling = true;
+    is_average_pool = true;
   } else if (op_type == "GlobalMaxPool") {
     is_global_pooling = true;
   } else if (op_type == "AveragePool") {
