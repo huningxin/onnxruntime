@@ -35,6 +35,11 @@ static OpBuilderRegistrations CreateOpBuilderRegistrations() {
     CreateConcatOpBuilder("Concat", op_registrations);
   }
 
+  {  // Gemm/MatMul
+    CreateGemmOpBuilder("Gemm", op_registrations);
+    CreateGemmOpBuilder("MatMul", op_registrations);
+  }
+
   {  // Pool
     CreatePoolOpBuilder("GlobalAveragePool", op_registrations);
     CreatePoolOpBuilder("GlobalMaxPool", op_registrations);

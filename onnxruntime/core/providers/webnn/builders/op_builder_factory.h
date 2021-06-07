@@ -23,6 +23,7 @@ void CreateBatchNormalizationOpBuilder(const std::string& op_type, OpBuilderRegi
 void CreateBinaryOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
 void CreateConvOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
 void CreateConcatOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
+void CreateGemmOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
 void CreatePoolOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
 void CreateReshapeOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_registrations);
 
