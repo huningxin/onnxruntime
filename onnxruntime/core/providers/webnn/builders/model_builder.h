@@ -45,7 +45,8 @@ class ModelBuilder {
 
   ::ml::GraphBuilder builder_;
   std::unordered_map<std::string, ::ml::Operand> operands_;
-  std::unordered_set<std::string> output_names_;
+  std::vector<std::string> input_names_;
+  std::vector<std::string> output_names_;
 
   std::unordered_set<std::string> scalar_outputs_;
   std::unordered_map<std::string, OnnxTensorInfo> input_output_info_;

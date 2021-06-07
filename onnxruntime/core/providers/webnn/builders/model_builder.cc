@@ -179,8 +179,9 @@ Status ModelBuilder::RegisterModelInputOutput(const NodeArg& node_arg, bool is_i
 
   if (is_input) {
     operands_[name] = builder_.Input(name.c_str(), &desc);
+    input_names_.push_back(name);
   } else {
-    output_names_.insert(name);
+    output_names_.push_back(name);
   }
 
   std::vector<int64_t> shape;
@@ -234,6 +235,8 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to build WebNN graph.");
   }
   model.reset(new Model(std::move(graph), logger_, flags_));
+  model->SetInputs(std::move(input_names_));
+  model->SetOutputs(std::move(output_names_));
   model->SetScalarOutputs(std::move(scalar_outputs_));
   model->SetInputOutputInfo(std::move(input_output_info_));
   return Status::OK();

@@ -185,25 +185,6 @@ common::Status WebNNExecutionProvider::Compile(const std::vector<FusedNodeAndGra
     webnn::ModelBuilder builder(graph_viewer, *GetLogger(), webnn_flags_);
     std::unique_ptr<webnn::Model> model;
     ORT_RETURN_IF_ERROR(builder.Compile(model));
-
-    {
-      const auto& input_defs = fused_node.InputDefs();
-      std::vector<std::string> onnx_input_names(input_defs.size());
-      for (size_t i = 0, end = input_defs.size(); i < end; ++i) {
-        onnx_input_names[i] = input_defs[i]->Name();
-      }
-      model->SetInputs(std::move(onnx_input_names));
-    }
-
-    {
-      const auto& output_defs = fused_node.OutputDefs();
-      std::vector<std::string> onnx_output_names(output_defs.size());
-      for (size_t i = 0, end = output_defs.size(); i < end; ++i) {
-        onnx_output_names[i] = output_defs[i]->Name();
-      }
-      model->SetOutputs(std::move(onnx_output_names));
-    }
-
     models_.emplace(fused_node.Name(), std::move(model));
 
     NodeComputeInfo compute_info;
