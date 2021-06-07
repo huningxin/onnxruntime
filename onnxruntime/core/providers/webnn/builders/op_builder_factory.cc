@@ -38,6 +38,10 @@ static OpBuilderRegistrations CreateOpBuilderRegistrations() {
     CreatePoolOpBuilder("MaxPool", op_registrations);
   }
 
+  {  // Reshape
+    CreateReshapeOpBuilder("Reshape", op_registrations);
+  }
+
   return op_registrations;
 }
 
