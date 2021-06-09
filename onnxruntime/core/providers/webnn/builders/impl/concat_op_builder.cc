@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+#include "core/common/safeint.h"
 #include "core/providers/common.h"
 #include "core/providers/shared/utils/utils.h"
 #include "core/providers/webnn/builders/helper.h"
@@ -45,7 +46,7 @@ Status ConcatOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
     inputs.push_back(model_builder.GetOperand(input->Name()));
   }
 
-  ::ml::Operand output = model_builder.GetBuilder().Concat(inputs.size(), inputs.data(), axis);
+  ::ml::Operand output = model_builder.GetBuilder().Concat(SafeInt<uint32_t>(inputs.size()), inputs.data(), axis);
 
   model_builder.AddOperand(node.OutputDefs()[0]->Name(), std::move(output));
   return Status::OK();

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+#include "core/common/safeint.h"
 #include "core/providers/common.h"
 #include "core/providers/shared/utils/utils.h"
 #include "core/providers/webnn/builders/helper.h"
@@ -55,14 +56,14 @@ Status PoolOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
   const auto kernel_shape = helper.Get("kernel_shape", std::vector<int32_t>{0, 0});
   if (!is_global_pooling) {
     options.windowDimensions = kernel_shape.data();
-    options.windowDimensionsCount = kernel_shape.size();
+    options.windowDimensionsCount = SafeInt<uint32_t>(kernel_shape.size());
   }
   const auto strides = helper.Get("strides", std::vector<int32_t>{1, 1});
   options.strides = strides.data();
-  options.stridesCount = strides.size();
+  options.stridesCount = SafeInt<uint32_t>(strides.size());
   const auto dilations = helper.Get("dilations", std::vector<int32_t>{1, 1});
   options.dilations = dilations.data();
-  options.dilationsCount = dilations.size();
+  options.dilationsCount = SafeInt<uint32_t>(dilations.size());
 
   // Add Padding
   // Usually using autopadding is more efficient than using explicit padding
@@ -87,7 +88,7 @@ Status PoolOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
     }
   } else {
     options.padding = pads.data();
-    options.paddingCount = pads.size();
+    options.paddingCount = SafeInt<uint32_t>(pads.size());
   }
 
   ::ml::Operand output;
@@ -162,8 +163,8 @@ void CreatePoolOpBuilder(const std::string& op_type, OpBuilderRegistrations& op_
       };
 
   op_registrations.builders.push_back(std::make_unique<PoolOpBuilder>());
-  for (const auto& op_type : op_types) {
-    op_registrations.op_builder_map.emplace(op_type, op_registrations.builders.back().get());
+  for (const auto& type : op_types) {
+    op_registrations.op_builder_map.emplace(type, op_registrations.builders.back().get());
   }
 }
 

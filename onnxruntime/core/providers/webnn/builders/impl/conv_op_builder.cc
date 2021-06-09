@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+#include "core/common/safeint.h"
 #include "core/providers/common.h"
 #include "core/providers/shared/utils/utils.h"
 #include "core/providers/webnn/builders/helper.h"
@@ -41,10 +42,10 @@ Status ConvOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder, const N
   NodeAttrHelper helper(node);
   const auto strides = helper.Get("strides", std::vector<int32_t>{1, 1});
   options.strides = strides.data();
-  options.stridesCount = strides.size();
+  options.stridesCount = SafeInt<uint32_t>(strides.size());
   const auto dilations = helper.Get("dilations", std::vector<int32_t>{1, 1});
   options.dilations = dilations.data();
-  options.dilationsCount = dilations.size();
+  options.dilationsCount = SafeInt<uint32_t>(dilations.size());
   const auto group = helper.Get("group", static_cast<int32_t>(1));
   options.groups = group;
   options.inputLayout = ::ml::InputOperandLayout::Nchw;
@@ -72,7 +73,7 @@ Status ConvOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder, const N
     }
   } else {
     options.padding = pads.data();
-    options.paddingCount = pads.size();
+    options.paddingCount = SafeInt<uint32_t>(pads.size());
   }
 
   output = model_builder.GetBuilder().Conv2d(input, filter, &options);
@@ -81,7 +82,7 @@ Status ConvOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder, const N
   if (input_defs.size() > 2) {
     ::ml::Operand bias = model_builder.GetOperand(input_defs[2]->Name());
     std::vector<int32_t> new_shape = {1, -1, 1, 1};
-    ::ml::Operand reshaped_bias = model_builder.GetBuilder().Reshape(bias, new_shape.data(), new_shape.size());
+    ::ml::Operand reshaped_bias = model_builder.GetBuilder().Reshape(bias, new_shape.data(), SafeInt<uint32_t>(new_shape.size()));
     output = model_builder.GetBuilder().Add(output, reshaped_bias);
   }
 

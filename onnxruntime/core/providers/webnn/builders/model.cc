@@ -36,7 +36,7 @@ Status Model::Predict(const std::unordered_map<std::string, OnnxTensorData>& inp
                              name, " type: ", tensor.tensor_info.data_type);
     }
     auto num_elements = SafeInt<size_t>(Product(tensor.tensor_info.shape));
-    ml_inputs_[name].size = num_elements * sizeof(float);
+    ml_inputs_[name].size = SafeInt<uint32_t>(num_elements * sizeof(float));
     named_inputs.Set(name.c_str(), &ml_inputs_[name]);
   }
   ::ml::NamedOutputs named_outputs = ::ml::CreateNamedOutputs();

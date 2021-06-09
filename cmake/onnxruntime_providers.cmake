@@ -763,6 +763,10 @@ if (onnxruntime_USE_WEBNN)
     message(FATAL_ERROR "WebNN EP can not be used in a basic minimal build. Please build with '--minimal_build extended'")
   endif()
 
+  if (WIN32)
+    set(DISABLED_WARNINGS_FOR_WEBNN /wd4305 /wd4244)
+  endif()
+
   add_compile_definitions(USE_WEBNN=1)
 
   # These are shared utils,
@@ -800,12 +804,17 @@ if (onnxruntime_USE_WEBNN)
   onnxruntime_add_static_library(onnxruntime_providers_webnn ${onnxruntime_providers_webnn_cc_srcs} ${webnn_cpp_src})
   onnxruntime_add_include_to_target(onnxruntime_providers_webnn onnxruntime_common onnxruntime_framework onnx onnx_proto protobuf::libprotobuf-lite flatbuffers)
   link_directories(onnxruntime_providers_webnn ${WEBNN_NATIVE_DIR})
-  target_link_libraries(onnxruntime_providers_webnn PRIVATE -lwebnn_native -lwebnn_proc)
+  if (WIN32)
+    target_link_libraries(onnxruntime_providers_webnn PRIVATE webnn_native.dll.lib webnn_proc.dll.lib)
+  else()
+    target_link_libraries(onnxruntime_providers_webnn PRIVATE -lwebnn_native -lwebnn_proc)
+  endif()
   add_dependencies(onnxruntime_providers_webnn onnx ${onnxruntime_EXTERNAL_DEPENDENCIES})
   set_target_properties(onnxruntime_providers_webnn PROPERTIES CXX_STANDARD_REQUIRED ON)
   set_target_properties(onnxruntime_providers_webnn PROPERTIES FOLDER "ONNXRuntime")
   target_include_directories(onnxruntime_providers_webnn PRIVATE ${ONNXRUNTIME_ROOT} ${WEBNN_NATIVE_INCLUDE_DIR} ${WEBNN_NATIVE_SRC_INCLUDE_DIR})
   set_target_properties(onnxruntime_providers_webnn PROPERTIES LINKER_LANGUAGE CXX)
+  target_compile_options(onnxruntime_providers_webnn PRIVATE ${DISABLED_WARNINGS_FOR_WEBNN})
 endif()
 
 

@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+#include "core/common/safeint.h"
 #include "core/providers/common.h"
 #include "core/providers/cpu/tensor/reshape_helper.h"
-
-#include <core/common/safeint.h>
-
 #include "core/providers/shared/utils/utils.h"
 #include "core/providers/webnn/builders/helper.h"
 #include "core/providers/webnn/builders/model_builder.h"
@@ -60,7 +58,7 @@ Status ReshapeOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
   std::transform(target_shape.cbegin(), target_shape.cend(),
                      std::back_inserter(new_shape),
                      [](int64_t dim) -> uint32_t { return SafeInt<int32_t>(dim); });
-  ::ml::Operand output = model_builder.GetBuilder().Reshape(input, new_shape.data(), new_shape.size());
+  ::ml::Operand output = model_builder.GetBuilder().Reshape(input, new_shape.data(), SafeInt<uint32_t>(new_shape.size()));
   model_builder.AddOperand(node.OutputDefs()[0]->Name(), std::move(output));
   return Status::OK();
 }

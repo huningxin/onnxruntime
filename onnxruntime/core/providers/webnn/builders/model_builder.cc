@@ -2,13 +2,13 @@
 // Licensed under the MIT License.
 
 #include <fstream>
-#include <core/common/safeint.h>
 
 #include "model_builder.h"
 #include "model.h"
 #include "helper.h"
 #include "op_builder_factory.h"
 
+#include "core/common/safeint.h"
 #include "core/providers/common.h"
 #include "core/providers/shared/utils/utils.h"
 
@@ -94,10 +94,10 @@ Status ModelBuilder::RegisterInitializers() {
     }
     ::ml::OperandDescriptor desc;
     desc.dimensions = dims.data();
-    desc.dimensionsCount = dims.size();
+    desc.dimensionsCount = SafeInt<uint32_t>(dims.size());
 
     auto data_type = tensor.data_type();
-    if (data_type = ONNX_NAMESPACE::TensorProto_DataType_FLOAT) {
+    if (data_type == ONNX_NAMESPACE::TensorProto_DataType_FLOAT) {
       const float* data = GetTensorFloatData(tensor);
       auto num_elements = SafeInt<size_t>(Product(tensor.dims()));
       desc.type = ::ml::OperandType::Float32;
@@ -146,14 +146,14 @@ Status ModelBuilder::RegisterModelInputOutput(const NodeArg& node_arg, bool is_i
       for (const auto& dim : shape) {
         ORT_RETURN_IF_NOT(dim.has_dim_value(),
                           "Dynamic shape is not supported yet, for ", input_output_type, ": ", name);
-        dims.push_back(dim.dim_value());
+        dims.push_back(SafeInt<int32_t>(dim.dim_value()));
       }
     }
   }
 
   ::ml::OperandDescriptor desc;
   desc.dimensions = dims.data();
-  desc.dimensionsCount = dims.size();
+  desc.dimensionsCount = SafeInt<uint32_t>(dims.size());
 
   int32_t data_type;
   {  // type
