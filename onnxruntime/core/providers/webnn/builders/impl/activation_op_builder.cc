@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+#include "core/providers/common.h"
 #include "core/providers/webnn/builders/model_builder.h"
 #include "core/providers/webnn/builders/op_builder_factory.h"
 
@@ -31,7 +32,12 @@ Status ActivationOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
   ::ml::Operand input = model_builder.GetOperand(node.InputDefs()[0]->Name());
   ::ml::Operand output;
   if (op_type == "Relu") {
-    output = model_builder.GetBuilder().Relu(input);
+    if (Contains(model_builder.GetFusedActivations(), node.InputDefs()[0]->Name())) {
+      LOGS_DEFAULT(VERBOSE) << "Relu Node [" << node.Name() << "] fused";
+      output = input;
+    } else {
+      output = model_builder.GetBuilder().Relu(input);
+    }
   } else {
     return ORT_MAKE_STATUS(ONNXRUNTIME, INVALID_ARGUMENT,
                            "ActivationOpBuilder::AddToModelBuilderImpl, unknown op: ", op_type);

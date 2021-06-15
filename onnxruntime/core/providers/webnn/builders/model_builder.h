@@ -29,6 +29,12 @@ class ModelBuilder {
   const ::ml::Operand& GetOperand(const std::string& name) const { return operands_.at(name); }
   void AddOperand(const std::string& name, const ::ml::Operand& operand);
 
+  // Find if an output has a fuseable activation (e.g., Relu)
+  const ::ml::FusedActivation FindActivation(const Node& node, const NodeArg& output);
+
+  const std::unordered_set<std::string>&
+  GetFusedActivations() const { return fused_activations_; }
+
   // The initializer will be processed separately, skip it as an initializer
   void AddInitializerToSkip(const std::string& tensor_name);
 
@@ -54,13 +60,20 @@ class ModelBuilder {
   std::unordered_set<std::string> skipped_initializers_;
   std::unordered_set<std::string> skipped_inputs_;
 
+  std::unordered_set<std::string> fused_activations_;
+
   uint32_t name_token_{0};
   std::unordered_set<std::string> unique_names_;
+
+  // All activation nodes (e.g., Relu) as a map <NodeIndex, FusedActivation>
+  std::unordered_map<NodeIndex, ::ml::FusedActivation> activation_nodes_;
 
   // Convert the onnx model to WebNN operands
   Status Initialize() ORT_MUST_USE_RESULT;
 
   void PreprocessInitializers();
+  // Preprocess all the activation nodes (e.g., Relu) for easy query later
+  void PreprocessActivations();
 
   // Copy and process all the initializers to WebNN constants
   Status RegisterInitializers() ORT_MUST_USE_RESULT;

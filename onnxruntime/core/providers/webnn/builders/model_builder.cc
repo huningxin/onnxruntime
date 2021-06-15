@@ -47,6 +47,7 @@ Status ModelBuilder::Initialize() {
   }
 
   PreprocessInitializers();
+  PreprocessActivations();
   ORT_RETURN_IF_ERROR(RegisterInitializers());
   ORT_RETURN_IF_ERROR(RegisterModelInputs());
   ORT_RETURN_IF_ERROR(AddOperations());
@@ -70,6 +71,18 @@ void ModelBuilder::PreprocessInitializers() {
     const auto* node(graph_viewer_.GetNode(node_indices[i]));
     if (const auto* op_builder = GetOpBuilder(*node)) {
       op_builder->AddInitializersToSkip(*this, *node);
+    }
+  }
+}
+
+void ModelBuilder::PreprocessActivations() {
+  const auto& node_indices = graph_viewer_.GetNodesInTopologicalOrder();
+  for (size_t i = 0; i < node_indices.size(); i++) {
+    const auto* node(graph_viewer_.GetNode(node_indices[i]));
+    const auto& op_type(node->OpType());
+
+    if (op_type == "Relu") {
+      activation_nodes_.emplace(node->Index(), ::ml::FusedActivation::Relu);
     }
   }
 }
@@ -240,6 +253,40 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
   model->SetScalarOutputs(std::move(scalar_outputs_));
   model->SetInputOutputInfo(std::move(input_output_info_));
   return Status::OK();
+}
+
+const ::ml::FusedActivation ModelBuilder::FindActivation(const Node& node, const NodeArg& output) {
+  ::ml::FusedActivation fuse_code = ::ml::FusedActivation::None;
+
+  for (auto it = node.OutputEdgesBegin(), end = node.OutputEdgesEnd(); it != end; ++it) {
+    const auto& dst_node = it->GetNode();
+    const auto* dst_input = dst_node.InputDefs()[it->GetDstArgIndex()];
+    if (Contains(activation_nodes_, dst_node.Index())) {
+      if (&output == dst_input) {
+        fuse_code = activation_nodes_.at(dst_node.Index());
+      }
+    } else {
+      // if there is any other non-relu node using the output
+      // will add relu separately
+      if (&output == dst_input)
+        return ::ml::FusedActivation::None;
+    }
+  }
+
+  // if output is a graph output, will add relu separately
+  if (fuse_code != ::ml::FusedActivation::None) {
+    for (const auto* graph_output : graph_viewer_.GetOutputs()) {
+      if (&output == graph_output)
+        return ::ml::FusedActivation::None;
+    }
+
+    LOGS_DEFAULT(VERBOSE) << "Node [" << node.Name() << "] type [" << node.OpType()
+                          << "], fused the output [" << output.Name() << "]";
+
+    fused_activations_.insert(output.Name());
+  }
+
+  return fuse_code;
 }
 
 void ModelBuilder::AddScalarOutput(const std::string& output_name) {

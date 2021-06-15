@@ -81,6 +81,8 @@ Status ConvOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder, const N
     options.bias = model_builder.GetOperand(input_defs[2]->Name());
   }
 
+  options.activation = model_builder.FindActivation(node, *node.OutputDefs()[0]);
+
   output = model_builder.GetBuilder().Conv2d(input, filter, &options);
 
   model_builder.AddOperand(node.OutputDefs()[0]->Name(), std::move(output));

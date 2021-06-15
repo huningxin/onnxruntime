@@ -42,6 +42,7 @@ Status BatchNormalizationOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_bu
   ::ml::Operand variance = model_builder.GetOperand(input_defs[4]->Name());
   NodeAttrHelper helper(node);
   options.epsilon = helper.Get("epsilon", 1e-5f);
+  options.activation = model_builder.FindActivation(node, *node.OutputDefs()[0]);
 
   ::ml::Operand output = model_builder.GetBuilder().BatchNorm(input, mean, variance, &options);
   model_builder.AddOperand(node.OutputDefs()[0]->Name(), std::move(output));
