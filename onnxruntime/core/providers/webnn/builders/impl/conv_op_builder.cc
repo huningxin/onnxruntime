@@ -76,15 +76,12 @@ Status ConvOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder, const N
     options.paddingCount = SafeInt<uint32_t>(pads.size());
   }
 
-  output = model_builder.GetBuilder().Conv2d(input, filter, &options);
-
   // Add bias if present
   if (input_defs.size() > 2) {
-    ::ml::Operand bias = model_builder.GetOperand(input_defs[2]->Name());
-    std::vector<int32_t> new_shape = {1, -1, 1, 1};
-    ::ml::Operand reshaped_bias = model_builder.GetBuilder().Reshape(bias, new_shape.data(), SafeInt<uint32_t>(new_shape.size()));
-    output = model_builder.GetBuilder().Add(output, reshaped_bias);
+    options.bias = model_builder.GetOperand(input_defs[2]->Name());
   }
+
+  output = model_builder.GetBuilder().Conv2d(input, filter, &options);
 
   model_builder.AddOperand(node.OutputDefs()[0]->Name(), std::move(output));
   return Status::OK();
