@@ -22,3 +22,6 @@
 #ifdef USE_MIGRAPHX
 #include "onnxruntime/core/providers/migraphx/migraphx_provider_factory.h"
 #endif
+#ifdef USE_WEBNN
+#include "onnxruntime/core/providers/webnn/webnn_provider_factory.h"
+#endif

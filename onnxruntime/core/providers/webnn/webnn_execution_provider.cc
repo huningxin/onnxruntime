@@ -288,7 +288,7 @@ ONNX_OPERATOR_KERNEL_EX(
     1,
     kWebNNExecutionProvider,
     KernelDefBuilder()
-        .InputMemoryType<OrtMemTypeCPUInput>(0)
+        .InputMemoryType(OrtMemTypeCPUInput, 0)
         .TypeConstraint("T", DataTypeImpl::AllFixedSizeTensorTypes()),
     Memcpy);
 
@@ -298,7 +298,7 @@ ONNX_OPERATOR_KERNEL_EX(
     1,
     kWebNNExecutionProvider,
     KernelDefBuilder()
-        .OutputMemoryType<OrtMemTypeCPUOutput>(0)
+        .OutputMemoryType(OrtMemTypeCPUOutput, 0)
         .TypeConstraint("T", DataTypeImpl::AllFixedSizeTensorTypes()),
     Memcpy);
 

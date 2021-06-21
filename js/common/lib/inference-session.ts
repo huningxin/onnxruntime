@@ -151,6 +151,8 @@ export declare namespace InferenceSession {
      * This setting is available only in WebAssembly backend. Will support Node.js binding and react-native later
      */
     extra?: Record<string, unknown>;
+
+    webnn?: boolean;
   }
 
   //#region execution providers

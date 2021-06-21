@@ -754,8 +754,10 @@ if (onnxruntime_USE_COREML)
 endif()
 
 if (onnxruntime_USE_WEBNN)
-  if (NOT WEBNN_NATIVE_DIR)
-    message(FATAL_ERROR "WEBNN_NATIVE_DIR required for onnxruntime_USE_WEBNN")
+  if (NOT onnxruntime_BUILD_WEBASSEMBLY)
+    if (NOT WEBNN_NATIVE_DIR)
+      message(FATAL_ERROR "WEBNN_NATIVE_DIR required for onnxruntime_USE_WEBNN")
+    endif()
   endif()
   set(WEBNN_NATIVE_INCLUDE_DIR ${WEBNN_NATIVE_DIR}/gen/src/include)
   set(WEBNN_NATIVE_SRC_INCLUDE_DIR ${WEBNN_NATIVE_DIR}/../../src/include)
@@ -789,10 +791,12 @@ if (onnxruntime_USE_WEBNN)
     "${ONNXRUNTIME_ROOT}/core/providers/webnn/builders/*.cc"
   )
 
-  file(GLOB
-    webnn_cpp_src
-    "${WEBNN_NATIVE_DIR}/gen/src/webnn/webnn_cpp.cpp"
-  )
+  if (NOT onnxruntime_BUILD_WEBASSEMBLY)
+    file(GLOB
+      webnn_cpp_src
+      "${WEBNN_NATIVE_DIR}/gen/src/webnn/webnn_cpp.cpp"
+    )
+  endif()
 
   set(onnxruntime_providers_webnn_cc_srcs
     ${onnxruntime_providers_webnn_cc_srcs_top}
@@ -803,11 +807,17 @@ if (onnxruntime_USE_WEBNN)
   source_group(TREE ${ONNXRUNTIME_ROOT}/core FILES ${onnxruntime_providers_webnn_cc_srcs})
   onnxruntime_add_static_library(onnxruntime_providers_webnn ${onnxruntime_providers_webnn_cc_srcs} ${webnn_cpp_src})
   onnxruntime_add_include_to_target(onnxruntime_providers_webnn onnxruntime_common onnxruntime_framework onnx onnx_proto protobuf::libprotobuf-lite flatbuffers)
-  link_directories(onnxruntime_providers_webnn ${WEBNN_NATIVE_DIR})
-  if (WIN32)
-    target_link_libraries(onnxruntime_providers_webnn PRIVATE webnn_native.dll.lib webnn_proc.dll.lib)
+  if (NOT onnxruntime_BUILD_WEBASSEMBLY)
+    link_directories(onnxruntime_providers_webnn ${WEBNN_NATIVE_DIR})
+  endif()
+  if (NOT onnxruntime_BUILD_WEBASSEMBLY)
+    if (WIN32)
+      target_link_libraries(onnxruntime_providers_webnn PRIVATE webnn_native.dll.lib webnn_proc.dll.lib)
+    else()
+      target_link_libraries(onnxruntime_providers_webnn PRIVATE -lwebnn_native -lwebnn_proc)
+    endif()
   else()
-    target_link_libraries(onnxruntime_providers_webnn PRIVATE -lwebnn_native -lwebnn_proc)
+    target_link_libraries(onnxruntime_providers_webnn PRIVATE -lwebnn_cpp)
   endif()
   add_dependencies(onnxruntime_providers_webnn onnx ${onnxruntime_EXTERNAL_DEPENDENCIES})
   set_target_properties(onnxruntime_providers_webnn PROPERTIES CXX_STANDARD_REQUIRED ON)

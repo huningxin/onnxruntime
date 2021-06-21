@@ -39,6 +39,10 @@ target_link_libraries(onnxruntime_webassembly PRIVATE
   re2::re2
 )
 
+if(onnxruntime_USE_WEBNN)
+  target_link_libraries(onnxruntime_webassembly PRIVATE onnxruntime_providers_webnn)
+endif()
+
 set(EXTRA_EXPORTED_RUNTIME_METHODS "['stackAlloc','stackRestore','stackSave','UTF8ToString','stringToUTF8','lengthBytesUTF8']")
 
 set_target_properties(onnxruntime_webassembly PROPERTIES LINK_FLAGS "                         \
@@ -53,6 +57,10 @@ set_target_properties(onnxruntime_webassembly PROPERTIES LINK_FLAGS "           
                       -s NO_FILESYSTEM=1                                                      \
                       -s MALLOC=${onnxruntime_WEBASSEMBLY_MALLOC}                             \
                       --no-entry")
+
+if (onnxruntime_USE_WEBNN)
+set_property(TARGET onnxruntime_webassembly APPEND_STRING PROPERTY LINK_FLAGS " -s USE_WEBNN=1")
+endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   set_property(TARGET onnxruntime_webassembly APPEND_STRING PROPERTY LINK_FLAGS " -s ASSERTIONS=2 -s SAFE_HEAP=1 -s STACK_OVERFLOW_CHECK=1 -s DEMANGLE_SUPPORT=1")

@@ -12,8 +12,14 @@
 #include "core/providers/common.h"
 #include "core/providers/shared/utils/utils.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#include <emscripten/html5_webnn.h>
+#else
 #include <webnn/webnn_proc.h>
 #include <webnn_native/WebnnNative.h>
+#endif
 
 namespace onnxruntime {
 namespace webnn {
@@ -26,12 +32,17 @@ ModelBuilder::ModelBuilder(const GraphViewer& graph_viewer, const logging::Logge
 
 Status ModelBuilder::Initialize() {
   // Create WebNN context and graph builder
+#ifdef __EMSCRIPTEN__
+  ::ml::Context context = emscripten_webnn_create_context();
+#else
   WebnnProcTable backendProcs = webnn_native::GetProcs();
   webnnProcSetProcs(&backendProcs);
   ::ml::Context context = ml::Context(webnn_native::CreateContext());
+#endif
   if (!context) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to create WebNN context.");
   }
+#ifndef __EMSCRIPTEN__
   context.SetUncapturedErrorCallback(
     [](MLErrorType type, char const* message, void* userData) {
       ModelBuilder* builder = reinterpret_cast<ModelBuilder*>(userData);
@@ -41,6 +52,7 @@ Status ModelBuilder::Initialize() {
       }
     },
     this);
+#endif
   builder_ = ::ml::CreateGraphBuilder(context);
   if (!builder_) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to create WebNN graph builder.");
@@ -255,7 +267,7 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
   return Status::OK();
 }
 
-const ::ml::FusedActivation ModelBuilder::FindActivation(const Node& node, const NodeArg& output) {
+::ml::FusedActivation ModelBuilder::FindActivation(const Node& node, const NodeArg& output) {
   ::ml::FusedActivation fuse_code = ::ml::FusedActivation::None;
 
   for (auto it = node.OutputEdgesBegin(), end = node.OutputEdgesEnd(); it != end; ++it) {

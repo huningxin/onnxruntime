@@ -30,7 +30,7 @@ class ModelBuilder {
   void AddOperand(const std::string& name, const ::ml::Operand& operand);
 
   // Find if an output has a fuseable activation (e.g., Relu)
-  const ::ml::FusedActivation FindActivation(const Node& node, const NodeArg& output);
+  ::ml::FusedActivation FindActivation(const Node& node, const NodeArg& output);
 
   const std::unordered_set<std::string>&
   GetFusedActivations() const { return fused_activations_; }

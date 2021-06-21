@@ -58,6 +58,8 @@ ort_session_options_handle_t EMSCRIPTEN_KEEPALIVE OrtCreateSessionOptions(size_t
                                                                           size_t log_severity_level,
                                                                           size_t log_verbosity_level);
 
+int EMSCRIPTEN_KEEPALIVE OrtSessionOptionsAppendExecutionProviderWebNN(ort_session_options_handle_t session_options,
+                                                                        const unsigned int webnn_flags);
 /**
  * store configurations for a session.
  * @param session_options a handle to session options created by OrtCreateSessionOptions

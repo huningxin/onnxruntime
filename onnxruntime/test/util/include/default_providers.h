@@ -19,6 +19,7 @@ std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_OpenVI
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_OpenVINO(const OrtOpenVINOProviderOptions* params);
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Rknpu();
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Tensorrt(const OrtTensorRTProviderOptions* params);
+std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_WebNN(uint32_t);
 
 // EP for internal testing
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_InternalTesting(const std::unordered_set<std::string>& supported_ops);
@@ -39,6 +40,7 @@ std::unique_ptr<IExecutionProvider> DefaultAclExecutionProvider(bool enable_aren
 std::unique_ptr<IExecutionProvider> DefaultArmNNExecutionProvider(bool enable_arena = true);
 std::unique_ptr<IExecutionProvider> DefaultRocmExecutionProvider();
 std::unique_ptr<IExecutionProvider> DefaultCoreMLExecutionProvider();
+std::unique_ptr<IExecutionProvider> DefaultWebNNExecutionProvider();
 
 // EP for internal testing
 std::unique_ptr<IExecutionProvider> DefaultInternalTestingExecutionProvider(

@@ -100,6 +100,12 @@ export const setSessionOptions = (options?: InferenceSession.SessionOptions): [n
       });
     }
 
+    if (options?.webnn) {
+      if (wasm._OrtSessionOptionsAppendExecutionProviderWebNN(sessionOptionsHandle, 0) !== 0) {
+        throw new Error(`Can't append WebNN execution provider`);
+      }
+    }
+
     return [sessionOptionsHandle, allocs];
   } catch (e) {
     if (sessionOptionsHandle !== 0) {
