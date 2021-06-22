@@ -100,9 +100,13 @@ export const setSessionOptions = (options?: InferenceSession.SessionOptions): [n
       });
     }
 
-    if (options?.webnn) {
-      if (wasm._OrtSessionOptionsAppendExecutionProviderWebNN(sessionOptionsHandle, 0) !== 0) {
-        throw new Error(`Can't append WebNN execution provider`);
+    if (options?.executionProviders) {
+      const eps = options.executionProviders;
+      const epsNames = eps.map(i => typeof i === 'string' ? i : i.name);
+      if (epsNames.indexOf('webnn') !== -1) {
+        if (wasm._OrtSessionOptionsAppendExecutionProviderWebNN(sessionOptionsHandle, 0) !== 0) {
+          throw new Error(`Can't append WebNN execution provider`);
+        }
       }
     }
 
