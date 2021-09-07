@@ -94,7 +94,7 @@ void ModelBuilder::PreprocessActivations() {
     const auto& op_type(node->OpType());
 
     if (op_type == "Relu") {
-      activation_nodes_.emplace(node->Index(), ::ml::FusedActivation::Relu);
+      activation_nodes_.emplace(node->Index(), builder_.ReluOperator());
     }
   }
 }
@@ -126,7 +126,10 @@ Status ModelBuilder::RegisterInitializers() {
       const float* data = GetTensorFloatData(tensor);
       auto num_elements = SafeInt<size_t>(Product(tensor.dims()));
       desc.type = ::ml::OperandType::Float32;
-      operands_[name] = builder_.Constant(&desc, reinterpret_cast<const void*>(data), num_elements * sizeof(float));
+      ml::ArrayBufferView bufferView;
+      bufferView.buffer = const_cast<float*>(data);
+      bufferView.byteLength = num_elements * sizeof(float);
+      operands_[name] = builder_.Constant(&desc, &bufferView);
     } else {
       // TODO: support other type
       return ORT_MAKE_STATUS(ONNXRUNTIME, INVALID_ARGUMENT,
@@ -255,7 +258,7 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
   for (auto name : output_names_) {
     named_operands.Set(name.c_str(), operands_[name]);
   }
-  ::ml::Graph graph = builder_.BuildSync(named_operands);
+  ::ml::Graph graph = builder_.Build(named_operands);
   if (!graph) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to build WebNN graph.");
   }
@@ -267,29 +270,29 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
   return Status::OK();
 }
 
-::ml::FusedActivation ModelBuilder::FindActivation(const Node& node, const NodeArg& output) {
-  ::ml::FusedActivation fuse_code = ::ml::FusedActivation::None;
+::ml::Operator ModelBuilder::FindActivation(const Node& node, const NodeArg& output) {
+  ::ml::Operator fused_op;
 
   for (auto it = node.OutputEdgesBegin(), end = node.OutputEdgesEnd(); it != end; ++it) {
     const auto& dst_node = it->GetNode();
     const auto* dst_input = dst_node.InputDefs()[it->GetDstArgIndex()];
     if (Contains(activation_nodes_, dst_node.Index())) {
       if (&output == dst_input) {
-        fuse_code = activation_nodes_.at(dst_node.Index());
+        fused_op = activation_nodes_.at(dst_node.Index());
       }
     } else {
       // if there is any other non-relu node using the output
       // will add relu separately
       if (&output == dst_input)
-        return ::ml::FusedActivation::None;
+        return ::ml::Operator();
     }
   }
 
   // if output is a graph output, will add relu separately
-  if (fuse_code != ::ml::FusedActivation::None) {
+  if (fused_op != nullptr) {
     for (const auto* graph_output : graph_viewer_.GetOutputs()) {
       if (&output == graph_output)
-        return ::ml::FusedActivation::None;
+        return ::ml::Operator();
     }
 
     LOGS_DEFAULT(VERBOSE) << "Node [" << node.Name() << "] type [" << node.OpType()
@@ -298,7 +301,7 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
     fused_activations_.insert(output.Name());
   }
 
-  return fuse_code;
+  return fused_op;
 }
 
 void ModelBuilder::AddScalarOutput(const std::string& output_name) {

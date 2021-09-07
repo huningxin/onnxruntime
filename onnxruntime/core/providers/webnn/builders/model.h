@@ -51,7 +51,7 @@ class Model {
   uint32_t flags_;
 
   std::unordered_map<std::string, ::ml::Input> ml_inputs_;
-  std::unordered_map<std::string, ::ml::Output> ml_outputs_;
+  std::unordered_map<std::string, ::ml::ArrayBufferView> ml_outputs_;
 
   std::unordered_set<std::string> scalar_outputs_;
 

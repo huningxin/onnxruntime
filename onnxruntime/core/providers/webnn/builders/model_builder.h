@@ -30,7 +30,7 @@ class ModelBuilder {
   void AddOperand(const std::string& name, const ::ml::Operand& operand);
 
   // Find if an output has a fuseable activation (e.g., Relu)
-  ::ml::FusedActivation FindActivation(const Node& node, const NodeArg& output);
+  ::ml::Operator FindActivation(const Node& node, const NodeArg& output);
 
   const std::unordered_set<std::string>&
   GetFusedActivations() const { return fused_activations_; }
@@ -65,8 +65,8 @@ class ModelBuilder {
   uint32_t name_token_{0};
   std::unordered_set<std::string> unique_names_;
 
-  // All activation nodes (e.g., Relu) as a map <NodeIndex, FusedActivation>
-  std::unordered_map<NodeIndex, ::ml::FusedActivation> activation_nodes_;
+  // All activation nodes (e.g., Relu) as a map <NodeIndex, Operator>
+  std::unordered_map<NodeIndex, ::ml::Operator> activation_nodes_;
 
   // Convert the onnx model to WebNN operands
   Status Initialize() ORT_MUST_USE_RESULT;

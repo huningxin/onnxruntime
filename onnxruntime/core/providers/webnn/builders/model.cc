@@ -29,14 +29,14 @@ Status Model::Predict(const std::unordered_map<std::string, OnnxTensorData>& inp
   for (const auto& input: inputs) {
     const std::string& name = input.first;
     const struct OnnxTensorData tensor = input.second;
-    ml_inputs_[name].buffer = tensor.buffer;
+    ml_inputs_[name].resource.buffer = tensor.buffer;
     if (tensor.tensor_info.data_type != ONNX_NAMESPACE::TensorProto_DataType_FLOAT) {
       return ORT_MAKE_STATUS(ONNXRUNTIME, INVALID_ARGUMENT,
                              "The input of graph has unsupported type, name: ",
                              name, " type: ", tensor.tensor_info.data_type);
     }
     auto num_elements = SafeInt<size_t>(Product(tensor.tensor_info.shape));
-    ml_inputs_[name].size = SafeInt<uint32_t>(num_elements * sizeof(float));
+    ml_inputs_[name].resource.byteLength = SafeInt<uint32_t>(num_elements * sizeof(float));
     named_inputs.Set(name.c_str(), &ml_inputs_[name]);
   }
   ::ml::NamedOutputs named_outputs = ::ml::CreateNamedOutputs();
@@ -50,11 +50,11 @@ Status Model::Predict(const std::unordered_map<std::string, OnnxTensorData>& inp
                              name, " type: ", tensor.tensor_info.data_type);
     }
     auto num_elements = SafeInt<size_t>(Product(tensor.tensor_info.shape));
-    ml_outputs_[name].size = num_elements * sizeof(float);
+    ml_outputs_[name].byteLength = num_elements * sizeof(float);
     named_outputs.Set(name.c_str(), &ml_outputs_[name]);
   }
 
-  ::ml::ComputeGraphStatus status = graph_.ComputeSync(named_inputs, named_outputs);
+  ::ml::ComputeGraphStatus status = graph_.Compute(named_inputs, named_outputs);
   if (status != ::ml::ComputeGraphStatus::Success) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to compute WebNN graph");
   }
