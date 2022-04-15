@@ -185,6 +185,26 @@ common::Status WebNNExecutionProvider::Compile(const std::vector<FusedNodeAndGra
     webnn::ModelBuilder builder(graph_viewer, *GetLogger(), webnn_device_flags_, webnn_power_flags_);
     std::unique_ptr<webnn::Model> model;
     ORT_RETURN_IF_ERROR(builder.Compile(model));
+    // Build map from input name to its index in input definitions
+    {
+      std::unordered_map<std::string, size_t> input_map;
+      const auto& input_defs = fused_node.InputDefs();
+      input_map.reserve(input_defs.size());
+      for (size_t i = 0, end = input_defs.size(); i < end; ++i) {
+        input_map[input_defs[i]->Name()] = i;
+      }
+      model->SetInputMap(std::move(input_map));
+    }
+    // Build map from output name to its index in output definitions
+    {
+      std::unordered_map<std::string, size_t> output_map;
+      const auto& output_defs = fused_node.OutputDefs();
+      output_map.reserve(output_defs.size());
+      for (size_t i = 0, end = output_defs.size(); i < end; ++i) {
+        output_map[output_defs[i]->Name()] = i;
+      }
+      model->SetOutputMap(std::move(output_map));
+    }
     models_.emplace(fused_node.Name(), std::move(model));
 
     NodeComputeInfo compute_info;
@@ -213,7 +233,8 @@ common::Status WebNNExecutionProvider::Compile(const std::vector<FusedNodeAndGra
       inputs.reserve(model_inputs.size());
       for (size_t i = 0; i < model_inputs.size(); i++) {
         const auto& input_name = model_inputs[i];
-        const OrtValue* input_tensor = ort.KernelContext_GetInput(context, i);
+        auto input_idx = model->GetMappedInputIdx(input_name);
+        const OrtValue* input_tensor = ort.KernelContext_GetInput(context, input_idx);
         auto* tensor_info = ort.GetTensorTypeAndShape(input_tensor);
 
         auto shape = ort.GetTensorShape(tensor_info);
@@ -251,8 +272,9 @@ common::Status WebNNExecutionProvider::Compile(const std::vector<FusedNodeAndGra
           if (model->IsScalarOutput(output_name))
             output_shape.clear();
 
+          auto output_idx = model->GetMappedOutputIdx(output_name);
           auto* output_tensor =
-              ort.KernelContext_GetOutput(context, i, output_shape.data(), output_shape.size());
+              ort.KernelContext_GetOutput(context, output_idx, output_shape.data(), output_shape.size());
 
           void* output_buffer;
           switch (output_type) {

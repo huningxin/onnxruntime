@@ -45,6 +45,15 @@ class Model {
 
   const OnnxTensorInfo& GetInputOutputInfo(const std::string& name) const;
 
+  // Set the mapping between input/output name and ORT kernel context
+  // input/output index, at execution time
+  void SetInputMap(std::unordered_map<std::string, size_t>&& input_map);
+  void SetOutputMap(std::unordered_map<std::string, size_t>&& output_map);
+
+  // Get the ORT kernel context input/output index with given name
+  size_t GetMappedInputIdx(const std::string& name) const;
+  size_t GetMappedOutputIdx(const std::string& name) const;
+
  private:
   ::ml::Graph graph_;
   const logging::Logger& logger_;
@@ -60,6 +69,9 @@ class Model {
   std::vector<std::string> outputs_;
 
   std::unordered_map<std::string, OnnxTensorInfo> input_output_info_;
+
+  std::unordered_map<std::string, size_t> input_map_;
+  std::unordered_map<std::string, size_t> output_map_;
 
   OrtMutex mutex_;
 

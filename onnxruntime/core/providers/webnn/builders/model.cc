@@ -74,5 +74,21 @@ const OnnxTensorInfo& Model::GetInputOutputInfo(const std::string& name) const {
   return input_output_info_.at(name);
 }
 
+void Model::SetInputMap(std::unordered_map<std::string, size_t>&& input_map) {
+  input_map_ = std::move(input_map);
+}
+
+void Model::SetOutputMap(std::unordered_map<std::string, size_t>&& output_map) {
+  output_map_ = std::move(output_map);
+}
+
+size_t Model::GetMappedInputIdx(const std::string& name) const {
+  return input_map_.at(name);
+}
+
+size_t Model::GetMappedOutputIdx(const std::string& name) const {
+  return output_map_.at(name);
+}
+
 }  // namespace webnn
 }  // namespace onnxruntime
