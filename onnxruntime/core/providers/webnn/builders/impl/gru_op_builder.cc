@@ -68,10 +68,9 @@ Status GruOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder, const No
     steps = raw_sequenceLens[0];
   }
   // hiddenSize
-  const auto& recurrentWeight_tensor = *initializers.at(input_defs[2]->Name());
-  const auto& recurrentWeight_shape = recurrentWeight_tensor.dims();
-  const auto hiddenSize = helper.Get("hidden_size", static_cast<int32_t>(recurrentWeight_shape[2]));
-
+  std::vector<int64_t> recurrentWeight_shape;
+  ORT_RETURN_IF_NOT(GetShape(*input_defs[2], recurrentWeight_shape, logger), "Cannot get shape");
+  const auto hiddenSize = helper.Get("hidden_size", recurrentWeight_shape[2]);
   // Add bias, recurrentBias if present
   if (input_defs.size() > 3 && Contains(initializers, input_defs[3]->Name())) {
     // ONNX's bias should be splited in half for WebNN Gru's bias and recurrentBias options
@@ -110,11 +109,10 @@ Status GruOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder, const No
   if (layout == 1) {
     options.layout = ::wnn::RecurrentNetworkWeightLayout::Rzn;
   }
-
-  // Get ONNX's activations attribute, default is {"Sigmod", "Tanh"}
+  // Get ONNX's activations attribute, default is {"Sigmoid", "Tanh"}
   // Only support "Relu", "Tanh", "Sigmoid" at present
   auto activationOperators = ::wnn::CreateOperatorArray();
-  const auto activations = helper.Get("activations", std::vector<std::string>{"Sigmod", "Tanh"});
+  const auto activations = helper.Get("activations", std::vector<std::string>{"Sigmoid", "Tanh"});
   for (auto activation : activations) {
     wnn::FusionOperator activationOperator;
     if (activation == "Relu") {
