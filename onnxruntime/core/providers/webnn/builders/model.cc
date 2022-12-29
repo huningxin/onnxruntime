@@ -17,9 +17,10 @@
 namespace onnxruntime {
 namespace webnn {
 
-Model::Model(const ::wnn::Graph& graph, const logging::Logger& logger,
+Model::Model(const ::wnn::Context& context, const ::wnn::Graph& graph, const logging::Logger& logger,
              uint32_t device_flags, uint32_t power_flags)
-    : graph_(graph),
+    : context_(context),
+      graph_(graph),
       logger_(logger),
       device_flags_(device_flags),
       power_flags_(power_flags) {
@@ -58,7 +59,7 @@ Status Model::Predict(const std::unordered_map<std::string, OnnxTensorData>& inp
     named_outputs.Set(name.c_str(), &wnn_outputs_[name]);
   }
 
-  graph_.Compute(named_inputs, named_outputs);
+  context_.ComputeSync(graph_, named_inputs, named_outputs);
 
   return Status::OK();
 }

@@ -20,7 +20,7 @@
 #include <emscripten/html5_webnn.h>
 #else
 #include <webnn/webnn_proc.h>
-#include <webnn_native/WebnnNative.h>
+#include <webnn/native/WebnnNative.h>
 #endif
 
 namespace onnxruntime {
@@ -53,9 +53,9 @@ Status ModelBuilder::Initialize() {
 #ifdef __EMSCRIPTEN__
   ::wnn::Context context = emscripten_webnn_create_context(&options);
 #else
-  std::unique_ptr<webnn_native::Instance> instance;
-  instance = std::make_unique<webnn_native::Instance>();
-  WebnnProcTable backendProcs = webnn_native::GetProcs();
+  std::unique_ptr<::webnn::native::Instance> instance;
+  instance = std::make_unique<::webnn::native::Instance>();
+  WebnnProcTable backendProcs = ::webnn::native::GetProcs();
   webnnProcSetProcs(&backendProcs);
   ::wnn::Context context = instance->CreateContext(&options);
 
@@ -76,6 +76,7 @@ Status ModelBuilder::Initialize() {
     this);
 #endif
   builder_ = ::wnn::CreateGraphBuilder(context);
+  context_ = context;
   if (!builder_) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to create WebNN graph builder.");
   }
@@ -302,7 +303,7 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
   if (!graph) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to build WebNN graph.");
   }
-  model.reset(new Model(std::move(graph), logger_, device_flags_, power_flags_));
+  model.reset(new Model(std::move(context_), std::move(graph), logger_, device_flags_, power_flags_));
   model->SetInputs(std::move(input_names_));
   model->SetOutputs(std::move(output_names_));
   model->SetScalarOutputs(std::move(scalar_outputs_));

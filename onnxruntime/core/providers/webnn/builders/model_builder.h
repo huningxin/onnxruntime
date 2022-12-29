@@ -26,6 +26,7 @@ class ModelBuilder {
   const InitializedTensorSet& GetInitializerTensors() const { return graph_viewer_.GetAllInitializedTensors(); }
 
   const ::wnn::GraphBuilder& GetBuilder() const { return builder_; }
+  const ::wnn::Context& GetContext() const { return context_; }
   const ::wnn::Operand& GetOperand(const std::string& name) const { return operands_.at(name); }
   void AddOperand(const std::string& name, const ::wnn::Operand& operand);
 
@@ -51,6 +52,7 @@ class ModelBuilder {
   uint32_t power_flags_;
 
   ::wnn::GraphBuilder builder_;
+  ::wnn::Context context_;
   std::vector<std::vector<uint8_t>> unpacked_tensors_;
   std::unordered_map<std::string, ::wnn::Operand> operands_;
   std::vector<std::string> input_names_;
