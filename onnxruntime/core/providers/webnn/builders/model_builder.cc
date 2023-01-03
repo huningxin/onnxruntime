@@ -25,33 +25,14 @@ namespace onnxruntime {
 namespace webnn {
 
 ModelBuilder::ModelBuilder(const GraphViewer& graph_viewer, const logging::Logger& logger,
-                           uint32_t device_flags, uint32_t power_flags)
+                           const emscripten::val& context, const emscripten::val& builder)
     : graph_viewer_(graph_viewer),
       logger_(logger),
-      device_flags_(device_flags),
-      power_flags_(power_flags) {
+      wnn_context_(context),
+      wnn_builder_(builder) {
 }
 
 Status ModelBuilder::Initialize() {
-  // Create WebNN context and graph builder
-  std::unordered_map<uint32_t, std::string> device_type_name_s = {
-    {0, "auto"}, {1, "gpu"}, {2, "cpu"}};
-  std::unordered_map<uint32_t, std::string> power_preference_name_s = {
-      {0, "auto"}, {1, "high-performance"}, {2, "low-power"}};
-  std::string device_type_name_ = device_type_name_s[device_flags_];
-  std::string power_preference_name_ = power_preference_name_s[power_flags_];
-  thread_local const emscripten::val ml = emscripten::val::global("navigator")["ml"];
-  emscripten::val context_options = emscripten::val::object();
-  context_options.set("deviceType", emscripten::val(device_type_name_));
-  context_options.set("powerPreference", emscripten::val(power_preference_name_));
-  wnn_context_ = ml.call<emscripten::val>("createContextSync", context_options);
-  if (!wnn_context_.as<bool>()) {
-    return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to create WebNN context.");
-  }
-  wnn_builder_ = emscripten::val::global("MLGraphBuilder").new_(wnn_context_);
-  if (!wnn_builder_.as<bool>()) {
-    return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to create WebNN builder.");
-  }
   PreprocessInitializers();
   PreprocessActivations();
   ORT_RETURN_IF_ERROR(RegisterInitializers());
@@ -282,7 +263,7 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
   if (!wnn_graph.as<bool>()) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to build WebNN graph.");
   }
-  model.reset(new Model(std::move(wnn_context_), std::move(wnn_graph), logger_, device_flags_, power_flags_));
+  model.reset(new Model(std::move(wnn_context_), std::move(wnn_graph), logger_));
   model->SetInputs(std::move(input_names_));
   model->SetOutputs(std::move(output_names_));
   model->SetScalarOutputs(std::move(scalar_outputs_));

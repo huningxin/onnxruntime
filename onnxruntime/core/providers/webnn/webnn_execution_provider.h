@@ -6,6 +6,9 @@
 #include "core/framework/execution_provider.h"
 #include "core/providers/webnn/webnn_provider_factory.h"
 
+#include <emscripten.h>
+#include <emscripten/val.h>
+
 namespace onnxruntime {
 namespace webnn {
 class Model;
@@ -31,11 +34,8 @@ class WebNNExecutionProvider : public IExecutionProvider {
   std::shared_ptr<KernelRegistry> GetKernelRegistry() const override;
 
  private:
-  // The bit flags which define bool options for WEBNN EP, bits are defined as
-  // WebNNDeviceFlags and WebNNPowerFlags in
-  // include/onnxruntime/core/providers/webnn/webnn_provider_factory.h
-  const uint32_t webnn_device_flags_;
-  const uint32_t webnn_power_flags_;
+  emscripten::val wnn_context_ = emscripten::val::object();
+  emscripten::val wnn_builder_ = emscripten::val::object();
 
   std::unordered_map<std::string, std::unique_ptr<onnxruntime::webnn::Model>> models_;
 };

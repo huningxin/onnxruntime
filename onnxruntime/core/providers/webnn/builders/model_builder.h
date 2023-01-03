@@ -20,7 +20,8 @@ class IOpBuilder;
 
 class ModelBuilder {
  public:
-  ModelBuilder(const GraphViewer& graph_viewer, const logging::Logger& logger, uint32_t device_flags, uint32_t power_flags);
+ ModelBuilder(const GraphViewer& graph_viewer, const logging::Logger& logger,
+              const emscripten::val& context, const emscripten::val& builder);
   ~ModelBuilder() = default;
 
   Status Compile(std::unique_ptr<Model>& model) ORT_MUST_USE_RESULT;
@@ -53,11 +54,9 @@ class ModelBuilder {
  private:
   const GraphViewer& graph_viewer_;
   const logging::Logger& logger_;
-  uint32_t device_flags_;
-  uint32_t power_flags_;
 
   emscripten::val wnn_context_ = emscripten::val::object();
-  emscripten::val wnn_builder_ = emscripten::val::object();;
+  emscripten::val wnn_builder_ = emscripten::val::object();
   std::vector<std::vector<uint8_t>> unpacked_tensors_;
   std::unordered_map<std::string, emscripten::val> wnn_operands_;
   std::vector<std::string> input_names_;

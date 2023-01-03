@@ -104,7 +104,7 @@ Status GruOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder, const No
   // layout
   const auto layout = helper.Get("layout", static_cast<int32_t>(0));
   if (layout == 1) {
-    options.set("latout", emscripten::val("rzn"));
+    options.set("layout", emscripten::val("rzn"));
   }
   // Get ONNX's activations attribute, default is {"Sigmoid", "Tanh"}
   // Only support "Relu", "Tanh", "Sigmoid" at present

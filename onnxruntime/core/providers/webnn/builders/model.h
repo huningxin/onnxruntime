@@ -62,8 +62,6 @@ class Model {
   emscripten::val wnn_context_ = emscripten::val::object();
   emscripten::val wnn_graph_ = emscripten::val::object();
   const logging::Logger& logger_;
-  uint32_t device_flags_;
-  uint32_t power_flags_;
 
   emscripten::val wnn_inputs_ = emscripten::val::object();
   emscripten::val wnn_outputs_ = emscripten::val::object();
@@ -80,7 +78,7 @@ class Model {
 
   OrtMutex mutex_;
 
-  Model(const emscripten::val& context, const emscripten::val& path, const logging::Logger& logger, uint32_t device_flags, uint32_t power_flags);
+  Model(const emscripten::val& context, const emscripten::val& path, const logging::Logger& logger);
 
   void SetInputOutputInfo(std::unordered_map<std::string, OnnxTensorInfo>&& input_output_info) {
     input_output_info_ = std::move(input_output_info);

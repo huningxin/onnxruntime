@@ -17,13 +17,10 @@
 namespace onnxruntime {
 namespace webnn {
 
-Model::Model(const emscripten::val& context, const emscripten::val& graph, const logging::Logger& logger,
-             uint32_t device_flags, uint32_t power_flags)
+Model::Model(const emscripten::val& context, const emscripten::val& graph, const logging::Logger& logger)
     : wnn_context_(context),
       wnn_graph_(graph),
-      logger_(logger),
-      device_flags_(device_flags),
-      power_flags_(power_flags) {
+      logger_(logger) {
 }
 
 Model::~Model() {}

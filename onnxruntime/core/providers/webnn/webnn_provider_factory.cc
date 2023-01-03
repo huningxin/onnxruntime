@@ -14,6 +14,9 @@ struct WebNNProviderFactory : IExecutionProviderFactory {
   ~WebNNProviderFactory() override {}
 
   std::unique_ptr<IExecutionProvider> CreateProvider() override;
+  // The bit flags which define bool options for WEBNN EP, bits are defined as
+  // WebNNDeviceFlags and WebNNPowerFlags in
+  // include/onnxruntime/core/providers/webnn/webnn_provider_factory.h
   uint32_t webnn_device_flags_;
   uint32_t webnn_power_flags_;
 };
