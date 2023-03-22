@@ -138,6 +138,14 @@ constexpr ProviderInfo kProvidersInPriorityOrder[] =
 #endif
         },
         {
+            kWebNNExecutionProvider,
+#ifdef USE_WEBNN
+            true,
+#else
+            false,
+#endif
+        },
+        {
             kCannExecutionProvider,
 #ifdef USE_CANN
             true,

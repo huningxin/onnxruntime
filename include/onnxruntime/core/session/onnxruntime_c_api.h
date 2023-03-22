@@ -3480,6 +3480,7 @@ struct OrtApi {
    * Currently supported providers:
    *   SNPE
    *   XNNPACK
+   *   WEBNN
    *
    * Note: If an execution provider has a dedicated SessionOptionsAppendExecutionProvider_<provider name> function
    *       that should be used to add it.
@@ -3501,6 +3502,9 @@ struct OrtApi {
    * XNNPACK supported keys:
    *   "intra_op_num_threads": number of thread-pool size to use for XNNPACK execution provider.
    *      default value is 0, which means to use the session thread-pool size.
+   * WEBNN supported keys:
+   *   "deviceType": webnn execute hardware, options: "auto", "cpu", "gpu".
+   *   "powerPreference": power option for webnn backend, options: "auto", "low-power", "high-performance".
    *
    * \since Version 1.12.
    */
@@ -3630,7 +3634,7 @@ struct OrtApi {
   * 2. For windows, ort will infer the group id from a logical processor id, for example, assuming there are two groups with each has 64 logical processors,
   *    an id of 64 will be inferred as the last processor of the 1st group, while 65 will be interpreted as the 1st processor of the second group.
   *    Hence 64-65 is an invalid configuration, because a windows thread cannot be attached to processors across group boundary.
-  * 
+  *
   *  \since Version 1.14
   */
   ORT_API2_STATUS(SetGlobalIntraOpThreadAffinity, _Inout_ OrtThreadingOptions* tp_options, const char* affinity_string);

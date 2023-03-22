@@ -141,6 +141,9 @@ endif()
 if (onnxruntime_USE_XNNPACK)
   set(PROVIDERS_XNNPACK onnxruntime_providers_xnnpack)
 endif()
+if(onnxruntime_USE_WEBNN)
+  set(PROVIDERS_WEBNN onnxruntime_providers_webnn)
+endif()
 if(onnxruntime_USE_SNPE)
     include(onnxruntime_snpe_provider.cmake)
 endif()
@@ -948,6 +951,51 @@ if (onnxruntime_USE_COREML)
             RUNTIME   DESTINATION ${CMAKE_INSTALL_BINDIR}
             FRAMEWORK DESTINATION ${CMAKE_INSTALL_BINDIR})
   endif()
+endif()
+
+if (onnxruntime_USE_WEBNN)
+  if (onnxruntime_MINIMAL_BUILD AND NOT onnxruntime_EXTENDED_MINIMAL_BUILD)
+    message(FATAL_ERROR "WebNN EP can not be used in a basic minimal build. Please build with '--minimal_build extended'")
+  endif()
+
+  add_compile_definitions(USE_WEBNN=1)
+
+  # These are shared utils,
+  # TODO, move this to a separated lib when used by EPs other than NNAPI and CoreML
+  file(GLOB_RECURSE onnxruntime_providers_shared_utils_cc_srcs CONFIGURE_DEPENDS
+    "${ONNXRUNTIME_ROOT}/core/providers/shared/utils/utils.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/shared/utils/utils.cc"
+  )
+
+  file(GLOB
+    onnxruntime_providers_webnn_cc_srcs_top CONFIGURE_DEPENDS
+    "${ONNXRUNTIME_ROOT}/core/providers/webnn/*.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/webnn/*.cc"
+  )
+
+  # Add builder source code
+  file(GLOB_RECURSE
+    onnxruntime_providers_webnn_cc_srcs_nested CONFIGURE_DEPENDS
+    "${ONNXRUNTIME_ROOT}/core/providers/webnn/builders/*.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/webnn/builders/*.cc"
+  )
+
+
+  set(onnxruntime_providers_webnn_cc_srcs
+    ${onnxruntime_providers_webnn_cc_srcs_top}
+    ${onnxruntime_providers_webnn_cc_srcs_nested}
+    ${onnxruntime_providers_shared_utils_cc_srcs}
+  )
+
+  source_group(TREE ${ONNXRUNTIME_ROOT}/core FILES ${onnxruntime_providers_webnn_cc_srcs})
+  onnxruntime_add_static_library(onnxruntime_providers_webnn ${onnxruntime_providers_webnn_cc_srcs})
+  onnxruntime_add_include_to_target(onnxruntime_providers_webnn onnxruntime_common onnx onnx_proto Boost::mp11)
+
+  add_dependencies(onnxruntime_providers_webnn onnx ${onnxruntime_EXTERNAL_DEPENDENCIES})
+  set_target_properties(onnxruntime_providers_webnn PROPERTIES CXX_STANDARD_REQUIRED ON)
+  set_target_properties(onnxruntime_providers_webnn PROPERTIES FOLDER "ONNXRuntime")
+  target_include_directories(onnxruntime_providers_webnn PRIVATE ${ONNXRUNTIME_ROOT})
+  set_target_properties(onnxruntime_providers_webnn PROPERTIES LINKER_LANGUAGE CXX)
 endif()
 
 if (onnxruntime_USE_NNAPI_BUILTIN)

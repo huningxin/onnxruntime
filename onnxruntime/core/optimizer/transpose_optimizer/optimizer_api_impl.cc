@@ -830,7 +830,7 @@ namespace layout_transformer {
 const std::unordered_set<std::string_view>& GetORTLayoutSensitiveOps() {
   static std::unordered_set<std::string_view> ort_layout_sensitive_ops = []() {
     const auto& layout_sensitive_ops = onnx_layout_transformation::GetLayoutSensitiveOps();
-#if !defined(USE_CUDA) && !defined(USE_ROCM)
+#if !defined(USE_CUDA) && !defined(USE_ROCM) && !defined(USE_WEBNN)
     std::unordered_set<std::string_view> ort_specific_ops = {"FusedConv", "QLinearAveragePool", "QLinearGlobalAveragePool"};
 #else
     std::unordered_set<std::string_view> ort_specific_ops = {"Resize", "FusedConv", "QLinearAveragePool", "QLinearGlobalAveragePool"};

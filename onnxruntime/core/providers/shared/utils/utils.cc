@@ -132,6 +132,14 @@ std::vector<float> NodeAttrHelper::Get(const std::string& key, const std::vector
   return std::vector<float>{source.cbegin(), source.cend()};
 }
 
+std::vector<std::string> NodeAttrHelper::Get(const std::string& key, const std::vector<std::string>& def_val) const {
+  if (!HasAttr(key))
+    return def_val;
+
+  const auto& source(node_attributes_.at(key).strings());
+  return std::vector<std::string>{source.cbegin(), source.cend()};
+}
+
 bool NodeAttrHelper::HasAttr(const std::string& key) const {
   return Contains(node_attributes_, key);
 }
