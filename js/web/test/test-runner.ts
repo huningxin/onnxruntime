@@ -275,7 +275,7 @@ export class TensorResultValidator {
         this.absoluteThreshold = WEBGL_THRESHOLD_ABSOLUTE_ERROR;
         this.relativeThreshold = WEBGL_THRESHOLD_RELATIVE_ERROR;
       }
-    } else if (backend === 'wasm' || backend === 'xnnpack') {
+    } else if (backend === 'wasm' || backend === 'xnnpack' || backend === 'webnn') {
       this.absoluteThreshold = WASM_THRESHOLD_ABSOLUTE_ERROR;
       this.relativeThreshold = WASM_THRESHOLD_RELATIVE_ERROR;
     } else if (backend === 'onnxruntime') {

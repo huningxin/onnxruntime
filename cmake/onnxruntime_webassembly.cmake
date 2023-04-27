@@ -109,6 +109,7 @@ if (onnxruntime_BUILD_WEBASSEMBLY_STATIC_LIB)
       onnxruntime_optimizer
       onnxruntime_providers
       ${PROVIDERS_XNNPACK}
+      ${PROVIDERS_WEBNN}
       onnxruntime_session
       onnxruntime_util
       re2::re2
@@ -184,12 +185,17 @@ else()
     onnxruntime_optimizer
     onnxruntime_providers
     ${PROVIDERS_XNNPACK}
+    ${PROVIDERS_WEBNN}
     onnxruntime_session
     onnxruntime_util
     re2::re2
   )
   if (onnxruntime_USE_XNNPACK)
     target_link_libraries(onnxruntime_webassembly PRIVATE XNNPACK)
+  endif()
+
+  if(onnxruntime_USE_WEBNN)
+    target_link_libraries(onnxruntime_webassembly PRIVATE onnxruntime_providers_webnn)
   endif()
 
   if (onnxruntime_ENABLE_TRAINING)
@@ -222,6 +228,10 @@ else()
     set_property(TARGET onnxruntime_webassembly APPEND_STRING PROPERTY LINK_FLAGS " -s ASSERTIONS=2 -s SAFE_HEAP=1 -s STACK_OVERFLOW_CHECK=1 -s DEMANGLE_SUPPORT=1")
   else()
     set_property(TARGET onnxruntime_webassembly APPEND_STRING PROPERTY LINK_FLAGS " -s ASSERTIONS=0 -s SAFE_HEAP=0 -s STACK_OVERFLOW_CHECK=0 -s DEMANGLE_SUPPORT=0 --closure 1")
+  endif()
+
+  if (onnxruntime_USE_WEBNN)
+   set_property(TARGET onnxruntime_webassembly APPEND_STRING PROPERTY LINK_FLAGS " --bind")
   endif()
 
   # Set link flag to enable exceptions support, this will override default disabling exception throwing behavior when disable exceptions.
