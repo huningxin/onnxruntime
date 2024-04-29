@@ -386,6 +386,11 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
   if (!wnn_graph.as<bool>()) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Failed to build WebNN graph.");
   }
+  
+  // Set the current MLGraph for testing purpose.
+  emscripten::val window = emscripten::val::global("window");
+  window.set("current_wnn_graph", wnn_graph);
+
   model.reset(new Model(std::move(wnn_context_), std::move(wnn_graph), logger_));
   model->SetInputs(std::move(input_names_));
   model->SetOutputs(std::move(output_names_));

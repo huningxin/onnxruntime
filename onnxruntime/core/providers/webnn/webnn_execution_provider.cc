@@ -17,6 +17,8 @@
 
 namespace onnxruntime {
 
+emscripten::val g_wnn_context = emscripten::val::undefined();
+
 WebNNExecutionProvider::WebNNExecutionProvider(const std::string& webnn_device_flags,
                                                const std::string& webnn_threads_number, const std::string& webnn_power_flags)
     : IExecutionProvider{onnxruntime::kWebNNExecutionProvider} {
@@ -49,7 +51,14 @@ WebNNExecutionProvider::WebNNExecutionProvider(const std::string& webnn_device_f
     context_options.set("powerPreference", emscripten::val(webnn_power_flags));
   }
 
-  wnn_context_ = ml.call<emscripten::val>("createContext", context_options).await();
+  // Share a global context for testing purpose.
+  if (!g_wnn_context.as<bool>()) {
+    g_wnn_context = ml.call<emscripten::val>("createContext", context_options).await();
+    emscripten::val window = emscripten::val::global("window");
+    window.set("g_wnn_context", g_wnn_context);
+  }
+
+  wnn_context_ = g_wnn_context;
   if (!wnn_context_.as<bool>()) {
     ORT_THROW("Failed to create WebNN context.");
   }
