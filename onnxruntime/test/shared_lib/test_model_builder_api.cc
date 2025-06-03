@@ -35,6 +35,8 @@ Ort::Session CreateSession(Ort::Env& env,
   // Set this to save the model if you want to debug.
   // session_options.SetOptimizedModelFilePath(ORT_TSTR("model_builder_output.onnx"));
 
+  session_options.AppendExecutionProvider("WebGPU", {});
+
   Ort::Session session(env, graph_api_model, session_options);
 
   // Session should not require the model to stay alive so free it now to validate.
