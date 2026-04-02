@@ -455,6 +455,7 @@ Status ModelBuilder::Compile(std::unique_ptr<Model>& model) {
   model->SetInputs(std::move(input_names_));
   model->SetOutputs(std::move(output_names_));
   model->SetInputOutputInfo(std::move(input_output_info_));
+  model->SetOutputDimAddends(std::move(output_dim_addends_));
   // Wasm heap is not transferrable, we have to pre-allocate the MLNamedArrayBufferViews
   // for inputs and outputs because they will be transferred after compute() done.
   // https://webmachinelearning.github.io/webnn/#api-mlcontext-async-execution
@@ -478,6 +479,11 @@ void ModelBuilder::AddInitializerToSkip(const std::string& tensor_name) {
 
 void ModelBuilder::AddInputToSkip(const std::string& input_name) {
   skipped_inputs_.insert(input_name);
+}
+
+void ModelBuilder::RegisterOutputDimAddend(const std::string& output_name, size_t dim_idx,
+                                            const std::string& source_input_name, size_t source_dim_idx) {
+  output_dim_addends_[output_name] = {dim_idx, source_input_name, source_dim_idx};
 }
 
 std::string ModelBuilder::GetUniqueName(const std::string& base_name) {

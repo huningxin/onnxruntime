@@ -63,6 +63,12 @@ class ModelBuilder {
   // be added to WebNN model, since WebNN does not like input unused.
   void AddInputToSkip(const std::string& input_name);
 
+  // Register that an output's resolved dimension should have the runtime size of
+  // source_input_name[source_dim_idx] added to it at dispatch time.
+  // Used by ops like GQA that expand a sequence dimension via concat.
+  void RegisterOutputDimAddend(const std::string& output_name, size_t dim_idx,
+                                const std::string& source_input_name, size_t source_dim_idx);
+
   std::string GetUniqueName(const std::string& base_name);
 
  private:
@@ -91,6 +97,7 @@ class ModelBuilder {
 
   uint32_t name_token_{0};
   InlinedHashSet<std::string> unique_names_;
+  InlinedHashMap<std::string, Model::OutputDimAddend> output_dim_addends_;
 
   // Convert the onnx model to WebNN operands
   Status Initialize() ORT_MUST_USE_RESULT;

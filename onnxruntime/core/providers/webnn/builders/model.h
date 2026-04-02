@@ -46,6 +46,22 @@ class Model {
 
   const OnnxTensorInfo& GetInputOutputInfo(const std::string& name) const;
 
+  // Describes an addend to be summed into a specific output dimension at dispatch time.
+  // Used when an op (e.g. GQA with concat-based KV update) produces an output whose
+  // sequence dimension is larger than what the ONNX dim_param resolution alone computes.
+  struct OutputDimAddend {
+    size_t dim_idx;               // which output dimension to add to
+    std::string source_input_name;  // name of the input whose dimension provides the addend
+    size_t source_input_dim_idx;  // which dimension of that input
+  };
+
+  void SetOutputDimAddends(InlinedHashMap<std::string, OutputDimAddend>&& addends) {
+    output_dim_addends_ = std::move(addends);
+  }
+  const InlinedHashMap<std::string, OutputDimAddend>& GetOutputDimAddends() const {
+    return output_dim_addends_;
+  }
+
   // Set the mapping between input/output name and ORT kernel context
   // input/output index, at execution time.
   void SetInputMap(InlinedHashMap<std::string, size_t>&& input_map);
@@ -73,6 +89,7 @@ class Model {
   std::vector<std::string> outputs_;
 
   InlinedHashMap<std::string, OnnxTensorInfo> input_output_info_;
+  InlinedHashMap<std::string, OutputDimAddend> output_dim_addends_;
 
   InlinedHashMap<std::string, size_t> input_map_;
   InlinedHashMap<std::string, size_t> output_map_;

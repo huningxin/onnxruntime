@@ -352,6 +352,14 @@ Status GroupQueryAttentionOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_b
     present_value = new_value_bnsh;
   }
 
+  // With concat, present_key/present_value grow in sequence length beyond what the ONNX dim_param
+  // resolution computes (which resolves from past_key). Register the addend so the EP infrastructure
+  // allocates the output buffer with the correct size: past_seq_len + current_seq_len.
+  if (has_past_key && has_past_value) {
+    model_builder.RegisterOutputDimAddend(node.OutputDefs()[1]->Name(), 2, input_defs[0]->Name(), 1);
+    model_builder.RegisterOutputDimAddend(node.OutputDefs()[2]->Name(), 2, input_defs[0]->Name(), 1);
+  }
+
   // Compute dynamic helpers needed for the attention mask.
   // s_minus_1 = sequence_length - 1 (scalar INT32), used to derive past_seq_len from seqlens_k.
   // range_s_plus_one = [1, 2, ..., S], used as the base for causal mask (neq_right).

@@ -370,6 +370,27 @@ common::Status WebNNExecutionProvider::Compile(const std::vector<FusedNodeAndGra
             }
           }
 
+          // Apply registered output dim addends: add a source input's runtime dimension to the
+          // resolved output dim. Used by ops like GQA (concat-based KV update) whose output
+          // sequence dimension is past_seq_len + current_seq_len, exceeding what dim_param
+          // resolution alone yields (which only captures past_seq_len).
+          {
+            const auto& addends = model->GetOutputDimAddends();
+            const auto addend_it = addends.find(output_name);
+            if (addend_it != addends.end()) {
+              const auto& addend = addend_it->second;
+              if (addend.dim_idx < output_shape.size()) {
+                const auto source_input_idx = model->GetMappedInputIdx(addend.source_input_name);
+                if (source_input_idx < runtime_input_shapes.size()) {
+                  const auto& source_shape = runtime_input_shapes[source_input_idx];
+                  if (addend.source_input_dim_idx < source_shape.size()) {
+                    output_shape[addend.dim_idx] += source_shape[addend.source_input_dim_idx];
+                  }
+                }
+              }
+            }
+          }
+
           auto output_tensor =
               ctx.GetOutput(output_idx, output_shape.data(), output_shape.size());
           void* output_buffer = output_tensor.GetTensorMutableRawData();
