@@ -64,6 +64,8 @@ export const WEBGL_OP_RESOLVE_RULES: readonly OpSet.ResolveRule[] = [
   ['GlobalAveragePool', '', '1+', globalAveragePool, parseGlobalAveragePoolAttributes],
   ['GlobalMaxPool', '', '1+', globalMaxPool],
   ['Greater', '', '7+', binaryOps.greater],
+  ['HardSigmoid', '', '6+', unaryOps.hardSigmoid, unaryOps.parseHardSigmoidAttributes],
+  ['HardSwish', '', '14+', unaryOps.hardSwish],
   ['Identity', '', '1+', unaryOps.identity],
   ['ImageScaler', '', '1+', imageScaler, parseImageScalerAttributes],
   ['InstanceNormalization', '', '6+', instanceNormalization, parseInstanceNormalizationAttributes],

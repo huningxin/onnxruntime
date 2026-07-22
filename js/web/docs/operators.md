@@ -64,8 +64,8 @@ See [Compatibility](../README.md#Compatibility) for a list of the supported plat
 | [GlobalMaxPool](https://github.com/onnx/onnx/blob/master/docs/Operators.md#GlobalMaxPool) | [1+](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#GlobalMaxPool-1) |
 | [Greater](https://github.com/onnx/onnx/blob/master/docs/Operators.md#Greater) | [7-8](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#Greater-7), [9-12](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#Greater-9), [13+](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#Greater-13) |
 | [GreaterOrEqual](https://github.com/onnx/onnx/blob/master/docs/Operators.md#GreaterOrEqual) |  |
-| [HardSigmoid](https://github.com/onnx/onnx/blob/master/docs/Operators.md#HardSigmoid) |  |
-| [HardSwish](https://github.com/onnx/onnx/blob/master/docs/Operators.md#HardSwish) |  |
+| [HardSigmoid](https://github.com/onnx/onnx/blob/master/docs/Operators.md#HardSigmoid) | [6+](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#HardSigmoid-6) |
+| [HardSwish](https://github.com/onnx/onnx/blob/master/docs/Operators.md#HardSwish) | [14+](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#HardSwish-14) |
 | [Hardmax](https://github.com/onnx/onnx/blob/master/docs/Operators.md#Hardmax) |  |
 | [Identity](https://github.com/onnx/onnx/blob/master/docs/Operators.md#Identity) | [1-12](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#Identity-1), [13](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#Identity-13), [14+](https://github.com/onnx/onnx/blob/master/docs/Changelog.md#Identity-14) |
 | [If](https://github.com/onnx/onnx/blob/master/docs/Operators.md#If) |  |
