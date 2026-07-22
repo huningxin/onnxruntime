@@ -47,6 +47,33 @@ export function glslExp(): GlslValueFunction {
 export function glslFloor(): GlslValueFunction {
   return glslBuiltinUnary('floor');
 }
+export function glslHardSigmoid(alpha: number, beta: number): GlslValueFunction {
+  const name = 'hardSigmoid';
+  const body = `
+  const float alpha = float(${alpha});
+  const float beta = float(${beta});
+
+  float ${name}_(float a) {
+    return max(0.0, min(1.0, alpha * a + beta));
+  }
+  vec4 ${name}_(vec4 v) {
+    return max(vec4(0.0), min(vec4(1.0), alpha * v + vec4(beta)));
+  }
+  `;
+  return {body, name, type: FunctionType.ValueBased};
+}
+export function glslHardSwish(): GlslValueFunction {
+  const name = 'hardSwish';
+  const body = `
+  float ${name}_(float a) {
+    return a * max(0.0, min(1.0, (1.0 / 6.0) * a + 0.5));
+  }
+  vec4 ${name}_(vec4 v) {
+    return v * max(vec4(0.0), min(vec4(1.0), (1.0 / 6.0) * v + vec4(0.5)));
+  }
+  `;
+  return {body, name, type: FunctionType.ValueBased};
+}
 export function glslClip(min: number, max: number): GlslValueFunction {
   const name = 'clip';
   const body = `
@@ -265,6 +292,23 @@ export const exp = (handler: WebGLInferenceHandler, inputs: Tensor[]):
 
 export const floor = (handler: WebGLInferenceHandler, inputs: Tensor[]):
     Tensor[] => [handler.run(createElementwiseProgramInfoLoader(handler, inputs[0], glslFloor()), inputs)];
+
+export interface HardSigmoidAttributes extends AttributeWithCacheKey {
+  readonly alpha: number;
+  readonly beta: number;
+}
+
+export const hardSigmoid =
+    (handler: WebGLInferenceHandler, inputs: Tensor[], attributes: HardSigmoidAttributes): Tensor[] => [handler.run(
+        createElementwiseProgramInfoLoader(
+            handler, inputs[0], glslHardSigmoid(attributes.alpha, attributes.beta), attributes.cacheKey),
+        inputs)];
+
+export const parseHardSigmoidAttributes = (node: Graph.Node): HardSigmoidAttributes =>
+    createAttributeWithCacheKey({alpha: node.attributes.getFloat('alpha', 0.2), beta: node.attributes.getFloat('beta', 0.5)});
+
+export const hardSwish = (handler: WebGLInferenceHandler, inputs: Tensor[]):
+    Tensor[] => [handler.run(createElementwiseProgramInfoLoader(handler, inputs[0], glslHardSwish()), inputs)];
 
 export const identity = (handler: WebGLInferenceHandler, inputs: Tensor[]):
     Tensor[] => [handler.run(createElementwiseProgramInfoLoader(handler, inputs[0], glslIdentity()), inputs)];
