@@ -1,0 +1,141 @@
+[
+  {
+    "name": "Trilu - upper=1 default k",
+    "operator": "Trilu",
+    "attributes": [],
+    "opset": {
+      "domain": "",
+      "version": 14
+    },
+    "cases": [
+      {
+        "name": "Trilu upper default k",
+        "inputs": [
+          {
+            "data": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            "dims": [3, 4],
+            "type": "float32"
+          }
+        ],
+        "outputs": [
+          {
+            "data": [1, 2, 3, 4, 0, 6, 7, 8, 0, 0, 11, 12],
+            "dims": [3, 4],
+            "type": "float32"
+          }
+        ]
+      },
+      {
+        "name": "Trilu upper default k batched rank-3",
+        "inputs": [
+          {
+            "data": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            "dims": [2, 2, 3],
+            "type": "float32"
+          }
+        ],
+        "outputs": [
+          {
+            "data": [1, 2, 3, 0, 5, 6, 7, 8, 9, 0, 11, 12],
+            "dims": [2, 2, 3],
+            "type": "float32"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Trilu - upper=0 default k",
+    "operator": "Trilu",
+    "attributes": [{ "name": "upper", "data": 0, "type": "int" }],
+    "opset": {
+      "domain": "",
+      "version": 14
+    },
+    "cases": [
+      {
+        "name": "Trilu lower default k",
+        "inputs": [
+          {
+            "data": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            "dims": [3, 4],
+            "type": "float32"
+          }
+        ],
+        "outputs": [
+          {
+            "data": [1, 0, 0, 0, 5, 6, 0, 0, 9, 10, 11, 0],
+            "dims": [3, 4],
+            "type": "float32"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Trilu - upper=1 k>0",
+    "operator": "Trilu",
+    "attributes": [{ "name": "upper", "data": 1, "type": "int" }],
+    "opset": {
+      "domain": "",
+      "version": 14
+    },
+    "cases": [
+      {
+        "name": "Trilu upper positive k",
+        "inputs": [
+          {
+            "data": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            "dims": [3, 4],
+            "type": "float32"
+          },
+          {
+            "data": [1],
+            "dims": [],
+            "type": "int32"
+          }
+        ],
+        "outputs": [
+          {
+            "data": [0, 2, 3, 4, 0, 0, 7, 8, 0, 0, 0, 12],
+            "dims": [3, 4],
+            "type": "float32"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Trilu - upper=0 k<0",
+    "operator": "Trilu",
+    "attributes": [{ "name": "upper", "data": 0, "type": "int" }],
+    "opset": {
+      "domain": "",
+      "version": 14
+    },
+    "cases": [
+      {
+        "name": "Trilu lower negative k",
+        "inputs": [
+          {
+            "data": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            "dims": [3, 4],
+            "type": "float32"
+          },
+          {
+            "data": [-1],
+            "dims": [],
+            "type": "int64"
+          }
+        ],
+        "outputs": [
+          {
+            "data": [0, 0, 0, 0, 5, 0, 0, 0, 9, 10, 0, 0],
+            "dims": [3, 4],
+            "type": "float32"
+          }
+        ]
+      }
+    ]
+  }
+]
