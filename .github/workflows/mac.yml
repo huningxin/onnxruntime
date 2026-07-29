@@ -20,6 +20,7 @@ env:
 
 jobs:
   cpu:
+    if: false # TEMP (PR #29861): only the webgpu job is needed; revert before merge
     uses: ./.github/workflows/macos-ci-build-and-test-workflow.yml
     with:
       # Only build arm64 for CPU
@@ -33,6 +34,7 @@ jobs:
       python_version: "3.14"
 
   coreml:
+    if: false # TEMP (PR #29861): only the webgpu job is needed; revert before merge
     uses: ./.github/workflows/macos-ci-build-and-test-workflow.yml
     with:
       use_coreml: true
@@ -45,6 +47,7 @@ jobs:
       python_version: "3.14"
 
   xnnpack:
+    if: false # TEMP (PR #29861): only the webgpu job is needed; revert before merge
     uses: ./.github/workflows/macos-ci-build-and-test-workflow.yml
     with:
       use_xnnpack: true
@@ -59,15 +62,16 @@ jobs:
     uses: ./.github/workflows/macos-ci-build-and-test-workflow.yml
     with:
       use_webgpu: true
+      # TEMP (PR #29861): trimmed to the single combination that reproduces the
+      # uint8 Gather failure. Restore the full list before merge.
       matrix_include: >-
         [
-          {"machine": "arm64", "target": "x86_64", "build_config": "Release"},
-          {"machine": "arm64", "target": "arm64", "build_config": "Debug"},
           {"machine": "arm64", "target": "arm64", "build_config": "Release"}
         ]
       python_version: "3.14"
 
   iphone_simulator:
+    if: false # TEMP (PR #29861): only the webgpu job is needed; revert before merge
     runs-on: macos-15
 
     env:
@@ -121,6 +125,7 @@ jobs:
           ORT_GET_SIMULATOR_DEVICE_INFO_REQUESTED_RUNTIME_VERSION: ${{ env.simulator_runtime_version }}
 
   Objective-C-StaticAnalysis:
+    if: false # TEMP (PR #29861): only the webgpu job is needed; revert before merge
     runs-on: macos-14
 
     env:
