@@ -131,6 +131,35 @@ jobs:
           cd ${{ github.workspace }}/build/${{ matrix.build_config }}
           make install DESTDIR=${{ github.workspace }}/build/installed
 
+      # ===== TEMPORARY DIAGNOSTIC - REVERT BEFORE MERGE (PR #29861) =====
+      # The uint8 Gather WebGPU tests fail on this runner (Metal) and on the
+      # NVIDIA A10 / D3D12 runner with byte-identical wrong output, while passing
+      # on Intel Arc / D3D12, NVIDIA RTX / D3D12 and Vulkan. Dump the generated
+      # WGSL here so it can be compared against the shader generated where the
+      # same tests pass, to tell an ORT shader-generation bug apart from a
+      # backend miscompile. Runs before the test step so it executes even though
+      # that step fails.
+      - name: TEMP dump uint8 Gather WGSL
+        if: ${{ inputs.use_webgpu && matrix.machine == matrix.target && matrix.build_config == 'Release' }}
+        continue-on-error: true
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -x
+          bin_dir="${{ github.workspace }}/build/${{ matrix.build_config }}"
+          test_exe="$bin_dir/onnxruntime_provider_test"
+          if [ ! -x "$test_exe" ]; then
+            test_exe="$bin_dir/onnxruntime_test_all"
+          fi
+          dump="${{ runner.temp }}/gather_uint8.wgsl"
+          rm -f "$dump"
+          ORT_WEBGPU_EP_SHADER_DUMP_FILE="$dump" \
+            "$test_exe" --gtest_filter='GatherOpTest.*uint8*webgpu*' || true
+          echo "===== BEGIN DUMPED WGSL ====="
+          cat "$dump" || echo "(no dump produced at $dump)"
+          echo "===== END DUMPED WGSL ====="
+      # ===== END TEMPORARY DIAGNOSTIC =====
+
       - name: Running Tests (build.py --test)
         # Skip tests when cross-compiling
         if: ${{ matrix.machine == matrix.target }}
