@@ -20,13 +20,14 @@ Status GatherProgram::GenerateShaderCode(ShaderHelper& shader) const {
   bool pack_as_bytes = is_bool || is_uint8;
   shader.MainFunctionBody() << shader.GuardAgainstOutOfBoundsWorkgroupSizes("uniforms.data_size");
   if (pack_as_bytes) {
-    // For bool/uint8 packed paths, declare the output accumulator outside the per-comp blocks,
-    // but declare ALL intermediate computation variables INSIDE each comp's if-block scope.
-    // This avoids a cross-backend codegen bug (reproduces on both Metal/D3D12) where sequential
-    // if-blocks sharing the same mutable var names (output_indices, idx, etc.) cause comp=1..3
-    // to reuse comp=0's stale variable state, producing wrong results.
-    shader.MainFunctionBody() << (is_uint8 ? "  var value : vec4<u32> = vec4<u32>(0u);\n"
-                                           : "  var value : output_value_t;\n");
+    if (is_bool) {
+      shader.MainFunctionBody() << "  var value : output_value_t;\n";
+    } else {
+      shader.MainFunctionBody() << "  var byte_0 : u32 = 0u;\n"
+                                << "  var byte_1 : u32 = 0u;\n"
+                                << "  var byte_2 : u32 = 0u;\n"
+                                << "  var byte_3 : u32 = 0u;\n";
+    }
     for (int comp = 0; comp < 4; comp++) {
       shader.MainFunctionBody() << "  if (" << comp << "u + 4u * global_idx < uniforms.output_size) {\n"
                                 << "    var output_indices : output_indices_indices_t;\n"
@@ -58,8 +59,9 @@ Status GatherProgram::GenerateShaderCode(ShaderHelper& shader) const {
       if (is_bool) {
         shader.MainFunctionBody() << "    value[" << comp << "] = " << data.GetByOffset("data_offset / 4") << "[data_offset % 4];\n";
       } else {
-        shader.MainFunctionBody() << "    value[" << comp << "] = unpack4xU8(" << data.GetByOffset("data_offset / 4u")
-                                  << ")[data_offset % 4u];\n";
+        shader.MainFunctionBody() << "    let byte_value : u32 = unpack4xU8(" << data.GetByOffset("data_offset / 4u")
+                                  << ")[data_offset % 4u];\n"
+                                  << "    byte_" << comp << " = byte_value;\n";
       }
       shader.MainFunctionBody() << "  }\n";
     }
@@ -96,7 +98,7 @@ Status GatherProgram::GenerateShaderCode(ShaderHelper& shader) const {
   }
 
   if (is_uint8) {
-    shader.MainFunctionBody() << "  let packed_value : output_value_t = value[0] | (value[1] << 8u) | (value[2] << 16u) | (value[3] << 24u);\n"
+    shader.MainFunctionBody() << "  let packed_value : output_value_t = byte_0 | (byte_1 << 8u) | (byte_2 << 16u) | (byte_3 << 24u);\n"
                               << "  " << output.SetByOffset("global_idx", "packed_value");
   } else {
     shader.MainFunctionBody() << "  " << output.SetByOffset("global_idx", "value");
