@@ -115,5 +115,6 @@ Do not modify directly.*
 | ThresholdedRelu | ai.onnx(10+) |  |
 | Tile | ai.onnx(6-12,13+) |  |
 | Transpose | ai.onnx(1-12,13-20,21+) | need perf optimization |
+| Trilu | ai.onnx(14+) |  |
 | Unsqueeze | ai.onnx(1-10,11-12,13-20,21+) |  |
 | Where | ai.onnx(9-15,16+) |  |
